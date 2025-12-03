@@ -158,18 +158,29 @@ export default function PreviewPage() {
                         await new Promise(resolve => setTimeout(resolve, 100));
 
                         const opt: any = {
-                            margin: 0,
+                            margin: [10, 10, 10, 10], // Small margins
                             filename: `Facture-${invoiceData?.numeroFacture || 'new'}.pdf`,
-                            image: { type: 'jpeg', quality: 0.98 },
+                            image: { type: 'jpeg', quality: 0.95 },
                             html2canvas: {
                                 scale: 2,
                                 useCORS: true,
-                                logging: true,
+                                logging: false,
                                 scrollX: 0,
                                 scrollY: 0,
-                                windowWidth: 794 // A4 width in px at 96dpi approx
+                                windowWidth: 794,
+                                height: element.scrollHeight,
+                                width: 794
                             },
-                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                            jsPDF: {
+                                unit: 'px',
+                                format: [794, element.scrollHeight + 40], // Custom format based on content
+                                orientation: 'portrait',
+                                compress: true,
+                                hotfixes: ['px_scaling']
+                            },
+                            pagebreak: {
+                                mode: 'avoid-all'
+                            }
                         };
 
                         // Generate PDF blob
