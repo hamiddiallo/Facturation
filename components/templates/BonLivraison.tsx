@@ -1,4 +1,5 @@
 import { InvoiceData } from '@/lib/types';
+import { calculateAdjustedPrice } from '@/lib/priceCalculations';
 import styles from './BonLivraison.module.css';
 
 interface BonLivraisonProps {
@@ -66,17 +67,25 @@ export default function BonLivraison({ data }: BonLivraisonProps) {
                         <th>Désignation</th>
                         <th>Quantite</th>
                         {!isThiernodjo && <th>Unité</th>}
+                        <th>Prix Unitaire</th>
+                        <th>Prix Total</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {data.articles.map((article, index) => (
-                        <tr key={index}>
-                            <td>{index + 1}</td>
-                            <td>{article.designation}</td>
-                            <td>{article.quantity}</td>
-                            {!isThiernodjo && <td>{article.unit || 'Unité'}</td>}
-                        </tr>
-                    ))}
+                    {data.articles.map((article, index) => {
+                        const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.id);
+                        const adjustedTotal = adjustedPrice * article.quantity;
+                        return (
+                            <tr key={index}>
+                                <td>{index + 1}</td>
+                                <td>{article.designation}</td>
+                                <td>{article.quantity}</td>
+                                {!isThiernodjo && <td>{article.unit || '—'}</td>}
+                                <td>{adjustedPrice.toLocaleString()}GNF</td>
+                                <td>{adjustedTotal.toLocaleString()}GNF</td>
+                            </tr>
+                        )
+                    })}
                 </tbody>
             </table>
 

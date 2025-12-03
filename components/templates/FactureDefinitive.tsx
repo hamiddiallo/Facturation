@@ -1,5 +1,6 @@
 import { InvoiceData } from '@/lib/types';
 import { numberToWords } from '@/lib/numberToWords';
+import { calculateAdjustedPrice } from '@/lib/priceCalculations';
 import styles from './FactureDefinitive.module.css';
 
 interface FactureDefinitiveProps {
@@ -69,23 +70,32 @@ export default function FactureDefinitive({ data }: FactureDefinitiveProps) {
                         <th>Nº</th>
                         <th>Désignation</th>
                         <th>Quantite</th>
+                        {!isThiernodjo && <th>Unité</th>}
                         <th>Prix Unitaire</th>
                         <th>Total</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {data.articles.map((article, index) => (
-                        <tr key={index}>
-                            <td>{index + 1}</td>
-                            <td>{article.designation}</td>
-                            <td>{article.quantity}</td>
-                            <td>{article.price.toLocaleString()}GNF</td>
-                            <td>{article.totalPrice.toLocaleString()}GNF</td>
-                        </tr>
-                    ))}
+                    {data.articles.map((article, index) => {
+                        const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.id);
+                        const adjustedTotal = adjustedPrice * article.quantity;
+                        return (
+                            <tr key={index}>
+                                <td>{index + 1}</td>
+                                <td>{article.designation}</td>
+                                <td>{article.quantity}</td>
+                                {!isThiernodjo && <td>{article.unit || '—'}</td>}
+                                <td>{adjustedPrice.toLocaleString()}GNF</td>
+                                <td>{adjustedTotal.toLocaleString()}GNF</td>
+                            </tr>
+                        )
+                    })}
                     <tr>
-                        <td colSpan={4}><strong>Total:</strong></td>
-                        <td><strong>{data.totalFacture.toLocaleString()} GNF</strong></td>
+                        <td colSpan={isThiernodjo ? 4 : 5}><strong>Total:</strong></td>
+                        <td><strong>{data.articles.reduce((sum, article) => {
+                            const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.id);
+                            return sum + (adjustedPrice * article.quantity);
+                        }, 0).toLocaleString()} GNF</strong></td>
                     </tr>
                 </tbody>
             </table>
@@ -93,7 +103,10 @@ export default function FactureDefinitive({ data }: FactureDefinitiveProps) {
             <div className={styles.arrete}>
                 <p>
                     Arrêté la présente facture à la somme de :{' '}
-                    <strong>{numberToWords(data.totalFacture)} GNF</strong>
+                    <strong>{numberToWords(data.articles.reduce((sum, article) => {
+                        const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.id);
+                        return sum + (adjustedPrice * article.quantity);
+                    }, 0))} GNF</strong>
                 </p>
             </div>
 
