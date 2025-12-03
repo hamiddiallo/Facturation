@@ -141,55 +141,66 @@ export default function PreviewPage() {
                     const originalTop = element.style.top;
 
                     try {
-                        // Dynamic import for html2pdf
-                        const html2pdf = (await import('html2pdf.js')).default;
-
                         // Temporarily reset styles for capture
-                        // We need to make it visible and unscaled for the PDF generator
                         element.style.transform = 'none';
                         element.style.margin = '0';
                         element.style.height = 'auto';
-                        element.style.width = '210mm'; // Force A4 width
+                        element.style.width = '210mm';
                         element.style.position = 'relative';
                         element.style.left = '0';
                         element.style.top = '0';
 
-                        // Wait a moment for the browser to repaint
+                        // Wait for repaint
                         await new Promise(resolve => setTimeout(resolve, 100));
 
-                        const opt: any = {
-                            margin: [10, 10, 10, 10], // Small margins
-                            filename: `Facture-${invoiceData?.numeroFacture || 'new'}.pdf`,
-                            image: { type: 'jpeg', quality: 0.95 },
-                            html2canvas: {
-                                scale: 2,
-                                useCORS: true,
-                                logging: false,
-                                scrollX: 0,
-                                scrollY: 0,
-                                windowWidth: 794,
-                                height: element.scrollHeight,
-                                width: 794
-                            },
-                            jsPDF: {
-                                unit: 'px',
-                                format: [794, element.scrollHeight + 40], // Custom format based on content
-                                orientation: 'portrait',
-                                compress: true,
-                                hotfixes: ['px_scaling']
-                            },
-                            pagebreak: {
-                                mode: 'avoid-all'
-                            }
-                        };
+                        // Dynamic imports
+                        const html2canvas = (await import('html2canvas')).default;
+                        const { jsPDF } = await import('jspdf');
 
-                        // Generate PDF blob
-                        const pdfBlob = await html2pdf().from(element).set(opt).output('blob');
+                        // Capture element as canvas
+                        const canvas = await html2canvas(element, {
+                            scale: 2,
+                            useCORS: true,
+                            logging: false,
+                            windowWidth: 794, // A4 width in pixels at 96dpi
+                        });
 
-                        // Create file for sharing
-                        const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
+                        // Calculate dimensions for A4
+                        const imgWidth = 210; // A4 width in mm
+                        let imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-                        // Check if sharing is supported
+                        // If image is taller than A4, scale it down to fit
+                        const maxHeight = 297; // A4 height in mm
+                        if (imgHeight > maxHeight) {
+                            const ratio = maxHeight / imgHeight;
+                            imgHeight = maxHeight;
+                            // We'll scale the width too to maintain aspect ratio
+                        }
+
+                        // Create PDF - always single page A4
+                        const pdf = new jsPDF({
+                            orientation: 'portrait',
+                            unit: 'mm',
+                            format: 'a4',
+                            compress: true,
+                            putOnlyUsedFonts: true
+                        });
+
+                        // Add image to PDF - fit exactly to one page
+                        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+                        // Center the image if it's smaller than A4 height
+                        const yOffset = imgHeight < maxHeight ? (maxHeight - imgHeight) / 2 : 0;
+
+                        // Add image WITHOUT auto-paging (prevents blank pages)
+                        pdf.addImage(imgData, 'JPEG', 0, yOffset, imgWidth, imgHeight, undefined, 'FAST');
+
+                        // Generate blob
+                        const pdfBlob = pdf.output('blob');
+                        const filename = `Facture-${invoiceData?.numeroFacture || 'new'}.pdf`;
+                        const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+                        // Share or download
                         if (navigator.canShare && navigator.canShare({ files: [file] })) {
                             await navigator.share({
                                 files: [file],
@@ -197,11 +208,11 @@ export default function PreviewPage() {
                                 text: `Voici la facture N° ${invoiceData?.numeroFacture}`,
                             });
                         } else {
-                            // Fallback: download the file
+                            // Fallback: download
                             const url = URL.createObjectURL(pdfBlob);
                             const a = document.createElement('a');
                             a.href = url;
-                            a.download = opt.filename;
+                            a.download = filename;
                             a.click();
                             URL.revokeObjectURL(url);
                         }
