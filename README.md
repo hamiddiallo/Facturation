@@ -1,36 +1,140 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧾 Générateur de Factures Pro
 
-## Getting Started
+Application web moderne pour créer et partager des factures professionnelles en Guinée.
 
-First, run the development server:
+## ✨ Fonctionnalités
+
+- 📝 **Création de factures** : Proforma, Définitive, Simple, Bon de Livraison
+- 💾 **Sauvegarde automatique** : Les données sont conservées dans le navigateur
+- 📱 **Partage mobile** : Génération et partage de PDF via WhatsApp, email, etc.
+- 🖨️ **Impression** : Optimisée pour format A4
+- 📊 **Gestion d'articles** : Ajout/suppression dynamique avec calcul automatique
+- 🔢 **Conversion en lettres** : Montants convertis en français
+- 📲 **Responsive** : Adapté mobile, tablette et desktop
+- 🎨 **Interface moderne** : Animations et design professionnel
+
+## 🚀 Démarrage Rapide
+
+### Prérequis
+- Node.js 20+ 
+- npm ou yarn
+
+### Installation
 
 ```bash
+# Cloner le projet
+git clone <votre-repo>
+cd Facture
+
+# Installer les dépendances
+npm install
+
+# Lancer en développement
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build de Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## 📁 Structure du Projet
 
-To learn more about Next.js, take a look at the following resources:
+```
+Facture/
+├── app/                    # Pages Next.js
+│   ├── page.tsx           # Page d'accueil (formulaire)
+│   └── preview/           # Page de prévisualisation
+├── components/            # Composants React
+│   ├── templates/         # Templates de factures
+│   ├── InvoiceForm.tsx    # Formulaire principal
+│   └── ArticleList.tsx    # Gestion des articles
+├── lib/                   # Utilitaires
+│   ├── types.ts          # Types TypeScript
+│   ├── companies.ts      # Données des entreprises
+│   ├── storage.ts        # LocalStorage
+│   └── numberToWords.ts  # Conversion nombres → lettres
+└── public/               # Assets statiques
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🏢 Entreprises Supportées
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **ETS MLF** : Logo 3D stylisé
+- **MOUCTAR & FRÈRES** : Commerce général
+- **LES BOUTIQUES THIERNODJO & FRERE** : Commerce général
 
-## Deploy on Vercel
+## 🎯 Utilisation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Remplir le formulaire** : Client, articles, date
+2. **Générer** : Cliquer sur "Générer la facture"
+3. **Choisir le type** : Proforma, Définitive, Simple, Bon de Livraison
+4. **Partager ou Imprimer** :
+   - 📱 Mobile : Bouton "Partager PDF"
+   - 💻 Desktop : Bouton "Imprimer"
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Technologies
+
+- **Framework** : Next.js 16 (Turbopack)
+- **Language** : TypeScript
+- **Styling** : CSS Modules
+- **PDF** : html2pdf.js
+- **Partage** : Web Share API
+
+## 📱 Fonctionnalités Mobile
+
+- Zoom automatique de la facture
+- Bouton de partage fixé en bas
+- Sélecteur de type horizontal scrollable
+- Interface tactile optimisée
+
+## 🔧 Configuration
+
+### Ajouter une Entreprise
+
+Modifier `lib/companies.ts` :
+
+```typescript
+{
+  id: 'mon-entreprise',
+  name: 'MON ENTREPRISE',
+  displayName: 'MON ENTREPRISE',
+  businessType: 'Commerce Generale',
+  address: 'Adresse complète',
+  phone: '+224 XXX XXX XXX',
+  email: 'contact@exemple.com',
+  hasStyledLogo: false
+}
+```
+
+## 📦 Déploiement sur Vercel
+
+```bash
+# Installer Vercel CLI
+npm i -g vercel
+
+# Déployer
+vercel
+```
+
+Ou via l'interface : [vercel.com/new](https://vercel.com/new)
+
+## 🐛 Bugs Connus
+
+Aucun bug critique. Voir [verification_report.md](/.gemini/antigravity/brain/80377e7a-92c0-472b-9a37-f4dedc200c45/verification_report.md) pour le rapport complet.
+
+## 📝 Licence
+
+Projet privé - Tous droits réservés
+
+## 👨‍💻 Auteur
+
+Développé pour la gestion de factures en Guinée
+
+---
+
+**Version** : 1.0.0  
+**Dernière mise à jour** : Décembre 2024

@@ -1,0 +1,267 @@
+.page {
+    min-height: 100vh;
+    background: #f7fafc;
+    padding: 2rem 1rem;
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-size: 1.5rem;
+    color: #4a5568;
+}
+
+.controls {
+    max-width: 1400px;
+    margin: 0 auto 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.backButton {
+    background: #718096;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.companySelector {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.companySelectorLabel {
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 0.875rem;
+}
+
+.companySelect {
+    padding: 0.75rem 1rem;
+    border: 2px solid #cbd5e0;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: white;
+    color: #2d3748;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 200px;
+}
+
+.companySelect:hover {
+    border-color: #4299e1;
+}
+
+.companySelect:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.backButton:hover {
+    background: #4a5568;
+    transform: translateY(-2px);
+}
+
+.typeSelector {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.typeButton {
+    background: white;
+    color: #4a5568;
+    border: 2px solid #cbd5e0;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.typeButton:hover {
+    border-color: #4299e1;
+    color: #2b6cb0;
+}
+
+.typeButton.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.printButton {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
+}
+
+.printButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+}
+
+.shareButton {
+    display: none;
+    /* Hidden on desktop */
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
+}
+
+.shareButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+}
+
+.previewContainer {
+    max-width: 210mm;
+    margin: 0 auto;
+    background: white;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    overflow-x: auto;
+    /* Allow horizontal scroll on mobile */
+}
+
+@media print {
+    .controls {
+        display: none !important;
+    }
+
+    .page {
+        background: white;
+        padding: 0;
+    }
+
+    .previewContainer {
+        box-shadow: none;
+        border-radius: 0;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 1024px) {
+    .page {
+        padding: 1rem 0.5rem 5rem 0.5rem;
+        /* Add bottom padding for fixed button */
+    }
+
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.5rem;
+        position: relative;
+        z-index: 10;
+    }
+
+    .companySelector {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .companySelect {
+        width: 100%;
+        padding: 1rem;
+        /* Larger touch target */
+    }
+
+    .previewContainer {
+        overflow: visible;
+        /* Allow scaled content to be seen */
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .typeSelector {
+        width: 100%;
+        flex-wrap: nowrap;
+        /* Prevent wrapping */
+        overflow-x: auto;
+        /* Horizontal scroll */
+        padding-bottom: 0.5rem;
+        /* Space for scrollbar */
+        -webkit-overflow-scrolling: touch;
+        gap: 0.75rem;
+        mask-image: linear-gradient(to right, black 85%, transparent 100%);
+        /* Fade effect */
+    }
+
+    .typeButton {
+        flex: 0 0 auto;
+        /* Don't shrink */
+        white-space: nowrap;
+        padding: 0.75rem 1.5rem;
+    }
+
+    .backButton {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .printButton {
+        display: none;
+        /* Hide print on mobile/tablet */
+    }
+
+    .shareButton {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+        width: fit-content;
+        min-width: 200px;
+        z-index: 100;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem 2rem;
+        font-size: 1.125rem;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+}

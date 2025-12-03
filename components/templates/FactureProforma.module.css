@@ -1,0 +1,200 @@
+/* Shared styles for Facture Proforma template */
+.invoice {
+    width: 210mm;
+    margin: 0 auto;
+    background: white;
+    padding: 20mm;
+    min-height: 297mm;
+}
+
+/* Title section for THIERNODJO */
+.titleSection {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.invoiceTitle {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: #000;
+}
+
+.titleLine {
+    border: none;
+    border-top: 3px solid #808080;
+    margin: 0 0 1.5rem 0;
+}
+
+.thiernodjoDate {
+    margin-top: 1rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* Centered date for THIERNODJO */
+.centeredDate {
+    text-align: center;
+    margin: 0 1rem;
+}
+
+.centeredDate h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+}
+
+.centeredDate p {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.middle {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+}
+
+.entreprise {
+    text-align: center;
+    flex: 1;
+    margin-right: 2rem;
+}
+
+.companyName {
+    font-family: 'Times New Roman', serif;
+    font-size: 60px;
+    color: rgb(10, 16, 96);
+    text-transform: uppercase;
+    margin: 0;
+    letter-spacing: -3px;
+    text-shadow:
+        2px 2px 0 #fff,
+        4px 4px 0 rgb(10, 16, 96);
+    line-height: 1.2;
+}
+
+.companyNameSimple {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    color: #000;
+    text-transform: uppercase;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1.2;
+}
+
+.entreprise p {
+    margin: 0.25rem 0;
+    font-size: 14px;
+}
+
+.entreprise p:nth-child(2) {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.client {
+    text-align: center;
+    flex: 1;
+}
+
+.dates {
+    margin-bottom: 1.5rem;
+}
+
+.dates p,
+.dates h4 {
+    margin: 0.25rem 0;
+}
+
+.client h2 {
+    font-size: 1.25rem;
+    margin: 0.5rem 0;
+}
+
+.client p {
+    margin: 0.25rem 0;
+    font-size: 0.875rem;
+}
+
+.details {
+    text-align: center;
+    margin: 1.5rem 0;
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    border: 1px solid #0a2558;
+}
+
+.tableHead {
+    background: #0a2558;
+    color: white;
+}
+
+.table th,
+.table td {
+    border: 1px solid #0a2558;
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.table td {
+    font-size: 0.875rem;
+}
+
+.table tbody tr:last-child {
+    font-weight: 600;
+}
+
+.arrete {
+    margin: 2rem 0;
+    line-height: 1.6;
+    font-size: 0.875rem;
+}
+
+.arrete p {
+    margin: 0.5rem 0;
+}
+
+.footer {
+    margin-top: 1.5rem;
+}
+
+.piedPage {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.gauche,
+.droite {
+    font-weight: 600;
+}
+
+@media print {
+    .invoice {
+        margin: 0;
+        /* Keep padding for print to preserve margins */
+    }
+
+    .table {
+        page-break-inside: avoid;
+    }
+
+    .arrete,
+    .footer {
+        page-break-inside: avoid;
+    }
+}

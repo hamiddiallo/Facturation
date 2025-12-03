@@ -1,0 +1,96 @@
+.container {
+  margin-bottom: 3rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #1a202c;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  position: relative;
+  padding: 1.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.card:hover {
+  border-color: #4299e1;
+  box-shadow: 0 4px 12px rgba(66, 153, 225, 0.15);
+  transform: translateY(-2px);
+}
+
+.card.selected {
+  border-color: #3182ce;
+  background: linear-gradient(135deg, #ebf8ff 0%, #ffffff 100%);
+  box-shadow: 0 4px 16px rgba(49, 130, 206, 0.2);
+}
+
+.radio {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+.radioInput {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #3182ce;
+}
+
+.companyName {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+  padding-right: 2rem;
+}
+
+.businessType {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.address {
+  font-size: 0.875rem;
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+
+.contact {
+  font-size: 0.875rem;
+  color: #4299e1;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.email {
+  font-size: 0.875rem;
+  color: #4299e1;
+  font-weight: 500;
+}
