@@ -3,7 +3,7 @@
     width: 210mm;
     margin: 0 auto;
     background: white;
-    padding: 20mm;
+    padding: 15mm 20mm;
     min-height: 297mm;
 }
 
@@ -35,7 +35,7 @@
 .middle {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
 }
 
 .entreprise {
@@ -46,35 +46,36 @@
 
 .companyName {
     font-family: 'Times New Roman', serif;
-    font-size: 60px;
+    font-size: 45px;
     color: rgb(10, 16, 96);
     text-transform: uppercase;
     margin: 0;
-    letter-spacing: -3px;
+    letter-spacing: -2px;
     text-shadow:
-        2px 2px 0 #fff,
-        4px 4px 0 rgb(10, 16, 96);
-    line-height: 1.2;
+        1px 1px 0 #fff,
+        3px 3px 0 rgb(10, 16, 96);
+    line-height: 1.1;
 }
 
 .companyNameSimple {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 18px;
+    font-size: 14px;
     color: #000;
     text-transform: uppercase;
     margin: 0;
     font-weight: 700;
-    letter-spacing: 1px;
-    line-height: 1.2;
+    letter-spacing: 0.5px;
+    line-height: 1.1;
 }
 
 .entreprise p {
-    margin: 0.25rem 0;
-    font-size: 14px;
+    margin: 0.1rem 0;
+    font-size: 11px;
+    line-height: 1.2;
 }
 
 .entreprise p:nth-child(2) {
-    font-size: 20px;
+    font-size: 15px;
     font-weight: 600;
 }
 
@@ -84,22 +85,24 @@
 }
 
 .dates {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .dates p,
 .dates h4 {
-    margin: 0.25rem 0;
+    margin: 0.1rem 0;
+    font-size: 0.8rem;
 }
 
-.client h4 {
-    font-size: 1.125rem;
-    margin: 0.5rem 0;
+.client h2 {
+    font-size: 1rem;
+    margin: 0.25rem 0;
 }
 
 .client p {
-    margin: 0.25rem 0;
-    font-size: 0.875rem;
+    margin: 0.1rem 0;
+    font-size: 0.75rem;
+    line-height: 1.2;
 }
 
 .details {
@@ -112,7 +115,7 @@
 .table {
     width: 100%;
     border-collapse: collapse;
-    margin: 1.5rem 0;
+    margin: 0.5rem 0;
     border: 1px solid #0a2558;
 }
 
@@ -124,17 +127,18 @@
 .table th,
 .table td {
     border: 1px solid #0a2558;
-    padding: 0.5rem;
+    padding: 0.2rem 0.3rem;
     text-align: left;
 }
 
 .table th {
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
 }
 
 .table td {
-    font-size: 0.875rem;
+    font-size: 0.7rem;
+    line-height: 1.2;
 }
 
 .footPage {
