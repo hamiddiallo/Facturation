@@ -1,0 +1,124 @@
+{
+  "client": {
+    "nom": "DIRECT-AID",
+    "adresse": "PITA"
+  },
+  "numeroFacture": "",
+  "dateFacture": "",
+  "articles": [
+    {
+      "designation": "Savon toilette (Miss Paris)",
+      "quantity": 4,
+      "unit": "Carton",
+      "price": 150000,
+      "totalPrice": 600000
+    },
+    {
+      "designation": "Shampoing ou gel de toilette",
+      "quantity": 2,
+      "unit": "douzaine",
+      "price": 450000,
+      "totalPrice": 300000
+    },
+    {
+      "designation": "Brosse à dents",
+      "quantity": 7,
+      "unit": "Carton",
+      "price": 430000,
+      "totalPrice": 3010000
+    },
+    {
+      "designation": "Pâte dentifrice doctor",
+      "quantity": 3,
+      "unit": "Carton",
+      "price": 370000,
+      "totalPrice": 1110000
+    },
+    {
+      "designation": "Serviette",
+      "quantity": 13,
+      "unit": "pièce",
+      "price": 36000,
+      "totalPrice": 468000
+    },
+    {
+      "designation": "Crème corporelle ideal",
+      "quantity": 1,
+      "unit": "douzaine",
+      "price": 360000,
+      "totalPrice": 375000
+    },
+    {
+      "designation": "Coupe-ongles",
+      "quantity": 1,
+      "unit": "douzaine",
+      "price": 35000,
+      "totalPrice": 35000
+    },
+    {
+      "designation": "Parfum",
+      "quantity": 3,
+      "unit": "Carton",
+      "price": 360000,
+      "totalPrice": 1080000
+    },
+    {
+      "designation": "Chaussures de sport (marque plastique)",
+      "quantity": 98,
+      "unit": "pièce",
+      "price": 85000,
+      "totalPrice": 8330000
+    },
+    {
+      "designation": "Chaussures fermées (fashion)",
+      "quantity": 98,
+      "unit": "pièce",
+      "price": 85000,
+      "totalPrice": 2450000
+    },
+    {
+      "designation": "Ceinture",
+      "quantity": 98,
+      "unit": "pièce",
+      "price": 20000,
+      "totalPrice": 1960000
+    },
+    {
+      "designation": "Éponge pour le bain",
+      "quantity": 8,
+      "unit": "douzaine",
+      "price": 48000,
+      "totalPrice": 384000
+    }
+  ]
+}
+
+
+
+// ===================================================
+
+{
+  "client": {
+    "nom": "DIRECT-AID",
+    "adresse": "PITA"
+  },
+  "numeroFacture": "",
+  "dateFacture": "",
+  "articles": [
+    { "designation": "Bouilloires d'ablution", "quantity": 10, "unit": "douzaine", "price": 65000, "totalPrice": null },
+    { "designation": "Tasses à café", "quantity": 10, "unit": "douzaine", "price": 120000, "totalPrice": null },
+    { "designation": "Lampe torche", "quantity": 20, "unit": "pièce", "price": 40000, "totalPrice": null },
+    { "designation": "Tissu pour le pain", "quantity": 1, "unit": "pièce", "price": 120000, "totalPrice": null },
+    { "designation": "Tabouret bassins en plastique pour cuisine", "quantity": 1, "unit": "douzaine", "price": 660000, "totalPrice": null },
+    { "designation": "Poubelles pour dortoirs", "quantity": 8, "unit": "pièce", "price": 25000, "totalPrice": null },
+    { "designation": "Chaise de bureau", "quantity": 1, "unit": "pièce", "price": 900000, "totalPrice": null },
+    { "designation": "Couteaux pour cuisine", "quantity": 1, "unit": "douzaine", "price": 60000, "totalPrice": null },
+    { "designation": "Éponge métallique pour marmite", "quantity": 2, "unit": "paquet", "price": 20000, "totalPrice": null },
+    { "designation": "Savon Boule", "quantity": 5, "unit": "sac", "price": 210000, "totalPrice": null },
+    { "designation": "Savon Diama", "quantity": 5, "unit": "carton", "price": 155000, "totalPrice": null },
+    { "designation": "Rallonge électrique", "quantity": 3, "unit": "pièce", "price": 50000, "totalPrice": null },
+    { "designation": "Kit de nettoyage devant le restaurant", "quantity": 1, "unit": "pièce", "price": 90000, "totalPrice": null },
+    { "designation": "Kit de stockage des médicaments", "quantity": 1, "unit": "pièce", "price": 100000, "totalPrice": null },
+    { "designation": "Poubelle 100L avec couvercle", "quantity": 5, "unit": "pièce", "price": 60000, "totalPrice": null }
+  ]
+}
