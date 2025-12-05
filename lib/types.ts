@@ -24,6 +24,7 @@ export interface Article {
   unit?: string;
   price: number;
   totalPrice: number;
+  delivered?: boolean; // Track delivery status
 }
 
 export interface InvoiceData {
@@ -34,6 +35,7 @@ export interface InvoiceData {
   articles: Article[];
   totalFacture: number;
   selectedCompany: Company;
+  amountPaid?: number; // Amount already paid
 }
 
 export enum InvoiceType {

@@ -6,6 +6,7 @@ import styles from './ArticleList.module.css';
 interface ArticleListProps {
     articles: Article[];
     onUpdateArticle: (index: number, article: Article) => void;
+    onUpdateAllArticles: (articles: Article[]) => void;
     onRemoveArticle: (index: number) => void;
     onAddArticle: () => void;
 }
@@ -13,6 +14,7 @@ interface ArticleListProps {
 export default function ArticleList({
     articles,
     onUpdateArticle,
+    onUpdateAllArticles,
     onRemoveArticle,
     onAddArticle,
 }: ArticleListProps) {
@@ -30,6 +32,18 @@ export default function ArticleList({
         onUpdateArticle(index, article);
     };
 
+    const handleToggleAllDelivered = () => {
+        const allDelivered = articles.every(article => article.delivered);
+        const newDeliveredState = !allDelivered;
+
+        // Update all articles at once
+        const updatedArticles = articles.map(article => ({
+            ...article,
+            delivered: newDeliveredState
+        }));
+        onUpdateAllArticles(updatedArticles);
+    };
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
@@ -44,6 +58,18 @@ export default function ArticleList({
                     <thead>
                         <tr>
                             <th>Nº</th>
+                            <th style={{ textAlign: 'center' }}>
+                                Livré
+                                <br />
+                                <button
+                                    type="button"
+                                    onClick={handleToggleAllDelivered}
+                                    className={styles.toggleAllButton}
+                                    title={articles.every(a => a.delivered) ? "Tout décocher" : "Tout sélectionner"}
+                                >
+                                    {articles.every(a => a.delivered) ? '☑' : '☐'}
+                                </button>
+                            </th>
                             <th>Désignation</th>
                             <th>Quantité</th>
                             <th>Unité</th>
@@ -56,6 +82,18 @@ export default function ArticleList({
                         {articles.map((article, index) => (
                             <tr key={index}>
                                 <td className={styles.numberCell}>{index + 1}</td>
+                                <td className={styles.checkboxCell}>
+                                    <input
+                                        type="checkbox"
+                                        checked={article.delivered || false}
+                                        onChange={(e) => {
+                                            const updatedArticle = { ...article, delivered: e.target.checked };
+                                            onUpdateArticle(index, updatedArticle);
+                                        }}
+                                        className={styles.checkbox}
+                                        title="Article livré"
+                                    />
+                                </td>
                                 <td>
                                     <input
                                         type="text"

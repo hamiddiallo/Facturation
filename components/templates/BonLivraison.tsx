@@ -63,6 +63,7 @@ export default function BonLivraison({ data }: BonLivraisonProps) {
                 <thead>
                     <tr className={styles.tableHead}>
                         <th>Nº</th>
+                        <th>Livré</th>
                         <th>Désignation</th>
                         <th>Quantite</th>
                         {!isThiernodjo && <th>Unité</th>}
@@ -72,6 +73,7 @@ export default function BonLivraison({ data }: BonLivraisonProps) {
                     {data.articles.map((article, index) => (
                         <tr key={index}>
                             <td>{index + 1}</td>
+                            <td style={{ textAlign: 'center' }}>{article.delivered ? '✓' : '—'}</td>
                             <td>{article.designation}</td>
                             <td>{article.quantity}</td>
                             {!isThiernodjo && <td>{article.unit || '—'}</td>}

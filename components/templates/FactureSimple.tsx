@@ -56,6 +56,7 @@ export default function FactureSimple({ data }: FactureSimpleProps) {
                 <thead>
                     <tr className={styles.tableHead}>
                         <th>Nº</th>
+                        <th>Livré</th>
                         <th>Désignation</th>
                         <th>Quantite</th>
                         {!isThiernodjo && <th>Unité</th>}
@@ -70,6 +71,7 @@ export default function FactureSimple({ data }: FactureSimpleProps) {
                         return (
                             <tr key={index}>
                                 <td>{index + 1}</td>
+                                <td style={{ textAlign: 'center' }}>{article.delivered ? '✓' : '—'}</td>
                                 <td>{article.designation}</td>
                                 <td>{article.quantity}</td>
                                 {!isThiernodjo && <td>{article.unit || '—'}</td>}
@@ -79,12 +81,27 @@ export default function FactureSimple({ data }: FactureSimpleProps) {
                         )
                     })}
                     <tr>
-                        <td colSpan={isThiernodjo ? 4 : 5}><strong>Total:</strong></td>
+                        <td colSpan={isThiernodjo ? 5 : 6}><strong>Total:</strong></td>
                         <td><strong>{data.articles.reduce((sum, article) => {
                             const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.id);
                             return sum + (adjustedPrice * article.quantity);
                         }, 0).toLocaleString()} GNF</strong></td>
                     </tr>
+                    {data.amountPaid !== undefined && data.amountPaid > 0 && (
+                        <>
+                            <tr>
+                                <td colSpan={isThiernodjo ? 5 : 6}><strong>Payé:</strong></td>
+                                <td><strong>{data.amountPaid.toLocaleString()} GNF</strong></td>
+                            </tr>
+                            <tr>
+                                <td colSpan={isThiernodjo ? 5 : 6}><strong>Reste à payer:</strong></td>
+                                <td><strong>{Math.max(0, data.articles.reduce((sum, article) => {
+                                    const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.id);
+                                    return sum + (adjustedPrice * article.quantity);
+                                }, 0) - data.amountPaid).toLocaleString()} GNF</strong></td>
+                            </tr>
+                        </>
+                    )}
                 </tbody>
             </table>
 

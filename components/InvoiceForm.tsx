@@ -19,8 +19,9 @@ export default function InvoiceForm() {
         new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     );
     const [articles, setArticles] = useState<Article[]>([
-        { designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0 },
+        { designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false },
     ]);
+    const [amountPaid, setAmountPaid] = useState<number>(0);
 
     // Load data from localStorage on mount
     useEffect(() => {
@@ -31,7 +32,13 @@ export default function InvoiceForm() {
             setClientAddress(savedData.client.adresse);
             setInvoiceNumber(savedData.numeroFacture);
             setInvoiceDate(savedData.dateFacture);
-            setArticles(savedData.articles);
+            // Ensure all articles have delivered property
+            const normalizedArticles = savedData.articles.map(article => ({
+                ...article,
+                delivered: article.delivered ?? false
+            }));
+            setArticles(normalizedArticles);
+            setAmountPaid(savedData.amountPaid || 0);
         }
     }, []);
 
@@ -44,12 +51,13 @@ export default function InvoiceForm() {
             setClientAddress('');
             setInvoiceNumber('');
             setInvoiceDate(new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }));
-            setArticles([{ designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0 }]);
+            setArticles([{ designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false }]);
+            setAmountPaid(0);
         }
     };
 
     const handleAddArticle = () => {
-        setArticles([...articles, { designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0 }]);
+        setArticles([...articles, { designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false }]);
     };
 
     const handleRemoveArticle = (index: number) => {
@@ -62,6 +70,10 @@ export default function InvoiceForm() {
         const newArticles = [...articles];
         newArticles[index] = article;
         setArticles(newArticles);
+    };
+
+    const handleUpdateAllArticles = (updatedArticles: Article[]) => {
+        setArticles(updatedArticles);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -81,6 +93,7 @@ export default function InvoiceForm() {
             articles,
             totalFacture,
             selectedCompany: selectedCompany || companies[0],
+            amountPaid,
         };
 
         saveInvoiceData(invoiceData);
@@ -181,7 +194,21 @@ export default function InvoiceForm() {
                             onChange={(e) => setInvoiceDate(e.target.value)}
                             className={styles.input}
                             required
-                            placeholder="19/11/2025"
+                            placeholder="JJ/MM/AAAA"
+                        />
+                    </div>
+                    <div className={styles.field}>
+                        <label htmlFor="amountPaid" className={styles.label}>
+                            Montant payé (GNF)
+                        </label>
+                        <input
+                            type="number"
+                            id="amountPaid"
+                            value={amountPaid}
+                            onChange={(e) => setAmountPaid(Number(e.target.value) || 0)}
+                            className={styles.input}
+                            min="0"
+                            placeholder="0"
                         />
                     </div>
                 </div>
@@ -192,6 +219,7 @@ export default function InvoiceForm() {
                 onAddArticle={handleAddArticle}
                 onRemoveArticle={handleRemoveArticle}
                 onUpdateArticle={handleUpdateArticle}
+                onUpdateAllArticles={handleUpdateAllArticles}
             />
 
             <div className={styles.submitContainer}>
