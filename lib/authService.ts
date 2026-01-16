@@ -62,8 +62,8 @@ export const authService = {
                 localStorage.setItem(SESSION_KEY, JSON.stringify(freshProfile));
                 return freshProfile;
             }
-        } catch (e) {
-            console.error('Erreur rafraîchissement session:', e);
+        } catch (e: any) {
+            console.error('Erreur rafraîchissement session:', e.message);
         }
         return current;
     }

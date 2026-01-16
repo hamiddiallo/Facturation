@@ -69,7 +69,7 @@ export const getCompanies = async (): Promise<Company[]> => {
         .order('created_at', { ascending: true });
 
     if (error) {
-        console.error('Erreur getCompanies:', error);
+        console.error('Erreur getCompanies:', error.message);
         return [];
     }
 
@@ -117,7 +117,7 @@ export const createCompany = async (company: Omit<Company, 'id'>): Promise<Compa
         .single();
 
     if (error) {
-        console.error('Erreur createCompany:', error.message, error.code, error.details);
+        console.error('Erreur createCompany:', error.message);
         return null;
     }
 
@@ -168,7 +168,7 @@ export const updateCompany = async (id: string, company: Partial<Company>): Prom
         .single();
 
     if (error) {
-        console.error('Erreur updateCompany:', error.message, error.code, error.details);
+        console.error('Erreur updateCompany:', error.message);
         return null;
     }
 
@@ -186,12 +186,7 @@ export const setDefaultCompany = async (companyId: string): Promise<boolean> => 
     const { error } = await supabase.from('companies').update({ is_default: true }).eq('id', companyId);
 
     if (error) {
-        console.error('Erreur setDefaultCompany détectée:', {
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint
-        });
+        console.error('Erreur setDefaultCompany:', error.message);
         return false;
     }
     return true;
@@ -317,8 +312,8 @@ export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, 
 
         return invoiceId;
 
-    } catch (error) {
-        console.error('Erreur saveInvoiceCloud:', error);
+    } catch (error: any) {
+        console.error('Erreur saveInvoiceCloud:', error.message || error);
         return null;
     }
 };

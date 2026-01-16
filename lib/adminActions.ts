@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { normalizeText, normalizeEmail } from './textUtils';
+import { rateLimit } from './rateLimit';
 
 // Client standard avec clé service pour gestion directe de la table profiles
 const getSupabaseAdmin = () => {
@@ -18,12 +19,20 @@ const getSupabaseAdmin = () => {
 // --- SCHEMAS DE VALIDATION ---
 const LoginSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(6)
+    password: z.string().min(5)
 });
+
+// Politique de sécurité : 8 caractères, 1 Maj, 1 Min, 1 Chiffre, 1 Spécial
+const PasswordPolicy = z.string()
+    .min(8, "Au moins 8 caractères")
+    .regex(/[A-Z]/, "Au moins une majuscule")
+    .regex(/[a-z]/, "Au moins une minuscule")
+    .regex(/[0-9]/, "Au moins un chiffre")
+    .regex(/[^A-Za-z0-9]/, "Au moins un caractère spécial");
 
 const CreateUserSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(6),
+    password: PasswordPolicy,
     fullName: z.string().min(2),
     role: z.enum(['admin', 'user'])
 });
@@ -33,13 +42,18 @@ const UpdateUserSchema = z.object({
     email: z.string().email().optional(),
     role: z.enum(['admin', 'user']).optional(),
     status: z.enum(['active', 'inactive']).optional(),
-    password: z.string().min(6).optional()
+    password: PasswordPolicy.optional()
 });
 
 export async function verifyCredentials(email: string, pass: string) {
     // Validation
     const validated = LoginSchema.safeParse({ email: normalizeEmail(email), password: pass });
     if (!validated.success) return { success: false, error: 'Format invalide.' };
+
+    // Rate Limiting : 5 tentatives max / 5 minutes par email
+    if (!rateLimit(`login_${validated.data.email}`, { max: 5, windowMs: 1000 * 60 * 5 })) {
+        return { success: false, error: 'Trop de tentatives. Réessayez dans 5 minutes.' };
+    }
 
     const supabaseAdmin = getSupabaseAdmin();
 
@@ -52,7 +66,10 @@ export async function verifyCredentials(email: string, pass: string) {
             .single();
 
         if (error || !profile) {
-            console.error('Serveur: Utilisateur non trouvé ou erreur SQL:', error);
+            // Ne logger en erreur que si ce n'est pas un simple "non trouvé" (PGRST116)
+            if (error && error.code !== 'PGRST116') {
+                console.error('Erreur SQL imprévue lors du login:', error.message);
+            }
             return { success: false, error: 'Identifiants incorrects.' };
         }
 
@@ -79,8 +96,8 @@ export async function verifyCredentials(email: string, pass: string) {
                 status: profile.status
             }
         };
-    } catch (e) {
-        console.error('Serveur: Erreur fatale auth:', e);
+    } catch (e: any) {
+        console.error('Erreur fatale auth:', e?.message || e);
         return { success: false, error: 'Erreur technique serveur.' };
     }
 }
@@ -94,6 +111,11 @@ export async function adminCreateUser(email: string, pass: string, fullName: str
         role
     });
     if (!validated.success) throw new Error('Données invalides : ' + validated.error.message);
+
+    // Rate Limiting : 10 créations / minute
+    if (!rateLimit('admin_create_user', { max: 10, windowMs: 1000 * 60 })) {
+        throw new Error('Trop de créations en peu de temps. Veuillez patienter.');
+    }
 
     const { email: cleanEmail, fullName: cleanName, password: cleanPass } = validated.data;
     const supabaseAdmin = getSupabaseAdmin();
