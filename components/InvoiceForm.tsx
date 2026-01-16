@@ -28,7 +28,7 @@ export default function InvoiceForm() {
     const [articles, setArticles] = useState<Article[]>([
         { designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false },
     ]);
-    const [amountPaid, setAmountPaid] = useState<number>(0);
+    const [amountPaid, setAmountPaid] = useState<number | string>(0);
     const [invoiceType, setInvoiceType] = useState<InvoiceType>(InvoiceType.PROFORMA);
 
     // Initial sequence
@@ -67,7 +67,7 @@ export default function InvoiceForm() {
             setClientNom('');
             setClientAdresse('');
             setArticles([{ designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false }]);
-            setAmountPaid(0);
+            setAmountPaid('');
             setInvoiceType(InvoiceType.PROFORMA);
             const seq = getNextSequenceNumber();
             setInvoiceNumber(formatBaseInvoiceNumber(seq));
@@ -110,7 +110,7 @@ export default function InvoiceForm() {
             articles,
             totalFacture,
             selectedCompany: selectedCompany!,
-            amountPaid,
+            amountPaid: Number(amountPaid) || 0,
             type: invoiceType,
         };
 

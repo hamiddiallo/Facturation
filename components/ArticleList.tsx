@@ -8,8 +8,8 @@ interface ArticleListProps {
     onUpdateAllArticles: (articles: Article[]) => void;
     onRemoveArticle: (index: number) => void;
     onAddArticle: () => void;
-    amountPaid: number;
-    onAmountPaidChange: (amount: number) => void;
+    amountPaid: number | string;
+    onAmountPaidChange: (amount: number | string) => void;
 }
 
 const ArticleList = memo(({
@@ -27,9 +27,9 @@ const ArticleList = memo(({
         if (field === 'designation' || field === 'unit') {
             article[field] = value as string;
         } else if (field === 'quantity' || field === 'price') {
-            const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
-            article[field] = numValue;
-            article.totalPrice = article.quantity * article.price;
+            const numValue = value === '' ? '' : (parseFloat(value.toString()) || 0);
+            article[field] = numValue as any;
+            article.totalPrice = (Number(article.quantity) || 0) * (Number(article.price) || 0);
         }
 
         onUpdateArticle(index, article);
@@ -167,7 +167,7 @@ const ArticleList = memo(({
                     <input
                         type="number"
                         value={amountPaid}
-                        onChange={(e) => onAmountPaidChange(Number(e.target.value) || 0)}
+                        onChange={(e) => onAmountPaidChange(e.target.value === '' ? '' : e.target.value)}
                         className={styles.inputLocal}
                         placeholder="0"
                     />
