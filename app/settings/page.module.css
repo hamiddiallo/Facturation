@@ -1,0 +1,570 @@
+.page {
+    min-height: 100vh;
+    background: #f7fafc;
+    padding: 2rem 1rem;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.header h1 {
+    font-size: 2rem;
+    color: #1a202c;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+}
+
+.backButton {
+    background: #fff;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.backButton:hover {
+    background: #f8fafc;
+    border-color: #cbd5e0;
+    transform: translateY(-1px);
+}
+
+.content {
+    background: white;
+    padding: 0;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    border: 1px solid #edf2f7;
+}
+
+.mainTabs {
+    display: flex;
+    background: #f8fafc;
+    padding: 0.5rem;
+    gap: 0.5rem;
+    border-bottom: 1px solid #edf2f7;
+    flex-wrap: wrap;
+    /* Permet aux onglets de s'empiler si nécessaire */
+}
+
+.mainTabButton {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    color: #718096;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.mainTabButton:hover {
+    color: #2d3748;
+    background: #edf2f7;
+}
+
+.mainTabActive {
+    background: white;
+    color: #3182ce;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.tabContent {
+    padding: 2rem;
+}
+
+/* Tableau des Entreprises */
+.companyTableWrapper {
+    overflow-x: auto;
+}
+
+.companyTable {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.companyTable th {
+    padding: 1rem;
+    background: #f8fafc;
+    color: #718096;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    border-bottom: 2px solid #edf2f7;
+}
+
+.companyTable td {
+    padding: 1rem;
+    border-bottom: 1px solid #edf2f7;
+    color: #2d3748;
+    vertical-align: middle;
+}
+
+.companyRow:hover {
+    background: #f8fafc;
+}
+
+.defaultBadge {
+    background: #ebf8ff;
+    color: #3182ce;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.actionCell {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.actionBtn {
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #4a5568;
+}
+
+.actionBtn:hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+}
+
+.actionBtn.primary {
+    color: #3182ce;
+}
+
+.actionBtn.danger {
+    color: #e53e3e;
+}
+
+.addBtnContainer {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Modal */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: white;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    border-radius: 20px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -6px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal {
+        max-width: 95vw;
+        margin: 2.5vh auto;
+        /* Centrage vertical et horizontal plus sûr */
+        width: 95vw;
+    }
+
+    .tabContent {
+        padding: 1rem;
+        /* Réduire le padding pour plus d'espace contenu */
+    }
+
+    .modalBody {
+        padding: 1.25rem;
+        /* Beaucoup plus d'espace pour le contenu sur mobile */
+    }
+
+    .templateGrid {
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 colonnes bien proportionnées */
+        gap: 0.5rem;
+        /* Gap réduit pour gagner de la place */
+    }
+
+    .templatePreview {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1.414;
+        /* Ratio A4 pour une mise à l'échelle parfaite */
+        object-fit: contain;
+        background: #f7fafc;
+        /* Fond gris léger pour délimiter si l'image est blanche */
+    }
+
+    .modalHeader {
+        padding: 1rem 1.5rem;
+    }
+
+    .modalFooter {
+        padding: 1rem 1.5rem;
+        flex-direction: column-reverse;
+        /* Boutons empilés sur très petit écran si besoin, ou garder row */
+        gap: 0.75rem;
+    }
+
+    .saveButton,
+    .cancelButton {
+        width: 100%;
+        /* Boutons pleine largeur pour facilité tactile */
+    }
+
+}
+
+.modalHeader {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #edf2f7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modalHeader h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #1a202c;
+    font-weight: 700;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #a0aec0;
+    cursor: pointer;
+    padding: 0.5rem;
+    line-height: 1;
+}
+
+.modalBody {
+    padding: 2rem;
+}
+
+.modalFooter {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #edf2f7;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    background: #f8fafc;
+}
+
+/* Forms */
+.form {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.userFormGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 500px;
+    /* Limite la largeur pour que ça ne soit pas trop étiré */
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.formGroup label {
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 0.875rem;
+}
+
+.input {
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.2s;
+    background: #fff;
+    color: #2d3748;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.sealSection {
+    margin-top: 0.5rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border: 2px dashed #cbd5e0;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.sealPreview {
+    margin: 0 auto 1rem;
+    max-width: 150px;
+    max-height: 100px;
+    background: white;
+    padding: 5px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    display: block;
+    object-fit: contain;
+}
+
+.uploadButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #edf2f7;
+    color: #4a5568;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* User Section Styles */
+.userSection {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.createUserBox {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.userTableWrapper {
+    overflow-x: auto;
+}
+
+.userTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.userTable th {
+    padding: 1rem;
+    background: #f8fafc;
+    text-align: left;
+    border-bottom: 2px solid #edf2f7;
+}
+
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.adminBadge {
+    background: #fed7e2;
+    color: #97266d;
+}
+
+.userBadge {
+    background: #ebf8ff;
+    color: #2b6cb0;
+}
+
+.statusActive {
+    color: #38a169;
+}
+
+.statusInactive {
+    color: #e53e3e;
+}
+
+.saveButton {
+    background: #3182ce;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.cancelButton {
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.notif {
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.success {
+    background: #f0fff4;
+    color: #2f855a;
+    border: 1px solid #c6f6d5;
+}
+
+/* Template Selector */
+.templateGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.templateOption {
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f8fafc;
+    text-align: center;
+}
+
+.templateOption:hover {
+    border-color: #cbd5e0;
+    transform: translateY(-2px);
+}
+
+.templateOptionSelected {
+    border-color: #3182ce;
+    background: #ebf8ff;
+    box-shadow: 0 4px 6px -1px rgba(49, 130, 206, 0.2);
+}
+
+.templatePreview {
+    width: 100%;
+    height: 180px;
+    object-fit: contain;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: #fff;
+    border: 1px solid #edf2f7;
+}
+
+.templateLabel {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #4a5568;
+}
+
+.templateOptionSelected .templateLabel {
+    color: #3182ce;
+}
+
+/* MEDIA QUERIES - Mobile Responsiveness */
+@media (max-width: 768px) {
+    .modal {
+        max-width: 95vw;
+        margin: 2.5vh auto;
+        width: 95vw;
+    }
+
+    .tabContent {
+        padding: 1rem;
+    }
+
+    .modalBody {
+        padding: 1.25rem;
+    }
+
+    /* FORCE 2 COLONNES pour les templates sur mobile */
+    .templateGrid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem;
+    }
+
+    .templatePreview {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1.414;
+        object-fit: contain;
+        background: #f7fafc;
+    }
+
+    .modalHeader {
+        padding: 1rem 1.5rem;
+    }
+
+    .modalFooter {
+        padding: 1rem 1.5rem;
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+    }
+
+    .saveButton,
+    .cancelButton {
+        width: 100%;
+    }
+}

@@ -1,15 +1,15 @@
 'use client';
 
-import { companies } from '@/lib/companies';
 import { Company } from '@/lib/types';
 import styles from './CompanySelector.module.css';
 
 interface CompanySelectorProps {
+    companies: Company[];
     selectedCompany: Company | null;
-    onSelectCompany: (company: Company) => void;
+    onSelect: (company: Company) => void;
 }
 
-export default function CompanySelector({ selectedCompany, onSelectCompany }: CompanySelectorProps) {
+export default function CompanySelector({ companies, selectedCompany, onSelect }: CompanySelectorProps) {
     return (
         <div className={styles.container}>
             <h2 className={styles.title}>Sélectionnez votre entreprise</h2>
@@ -18,14 +18,14 @@ export default function CompanySelector({ selectedCompany, onSelectCompany }: Co
                     <div
                         key={company.id}
                         className={`${styles.card} ${selectedCompany?.id === company.id ? styles.selected : ''}`}
-                        onClick={() => onSelectCompany(company)}
+                        onClick={() => onSelect(company)}
                     >
                         <div className={styles.radio}>
                             <input
                                 type="radio"
                                 name="company"
                                 checked={selectedCompany?.id === company.id}
-                                onChange={() => onSelectCompany(company)}
+                                onChange={() => onSelect(company)}
                                 className={styles.radioInput}
                             />
                         </div>

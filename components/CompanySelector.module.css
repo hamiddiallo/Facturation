@@ -12,7 +12,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
@@ -80,6 +80,7 @@
   font-size: 0.875rem;
   color: #718096;
   margin-bottom: 0.5rem;
+  word-wrap: break-word;
 }
 
 .contact {

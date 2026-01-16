@@ -1,19 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
-import { Company, Article, InvoiceData } from '@/lib/types';
+import { Company, Article, InvoiceData, InvoiceType } from '@/lib/types';
 import { saveInvoiceData, getInvoiceData, clearInvoiceData } from '@/lib/storage';
-import { companies } from '@/lib/companies';
-import CompanySelector from './CompanySelector';
+import { useAuth } from './AuthProvider';
+import { getCompanies, saveInvoiceCloud } from '@/lib/supabaseServices';
+import { getNextSequenceNumber, formatBaseInvoiceNumber } from '@/lib/counter';
 import ArticleList from './ArticleList';
 import styles from './InvoiceForm.module.css';
 
 export default function InvoiceForm() {
     const router = useRouter();
-    const [selectedCompany, setSelectedCompany] = useState<Company | null>(companies[0]);
-    const [clientName, setClientName] = useState('');
-    const [clientAddress, setClientAddress] = useState('');
+    const { profile, signOut } = useAuth();
+
+    // SWR Data Fetching
+    const { data: companies = [] } = useSWR('companies', getCompanies);
+
+    const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+    const [clientNom, setClientNom] = useState('');
+    const [clientAdresse, setClientAdresse] = useState('');
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const [invoiceDate, setInvoiceDate] = useState(
         new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -22,212 +29,193 @@ export default function InvoiceForm() {
         { designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false },
     ]);
     const [amountPaid, setAmountPaid] = useState<number>(0);
+    const [invoiceType, setInvoiceType] = useState<InvoiceType>(InvoiceType.PROFORMA);
 
-    // Load data from localStorage on mount
+    // Initial sequence
     useEffect(() => {
-        const savedData = getInvoiceData();
-        if (savedData) {
-            setSelectedCompany(savedData.selectedCompany);
-            setClientName(savedData.client.nom);
-            setClientAddress(savedData.client.adresse);
-            setInvoiceNumber(savedData.numeroFacture);
-            setInvoiceDate(savedData.dateFacture);
-            // Ensure all articles have delivered property
-            const normalizedArticles = savedData.articles.map(article => ({
-                ...article,
-                delivered: article.delivered ?? false
-            }));
-            setArticles(normalizedArticles);
-            setAmountPaid(savedData.amountPaid || 0);
+        if (!invoiceNumber) {
+            const seq = getNextSequenceNumber();
+            setInvoiceNumber(formatBaseInvoiceNumber(seq));
         }
-    }, []);
+    }, [invoiceNumber]);
+
+    // Load data
+    useEffect(() => {
+        if (companies.length > 0 && !selectedCompany) {
+            const data = getInvoiceData();
+            if (data) {
+                setClientNom(data.client.nom);
+                setClientAdresse(data.client.adresse || '');
+                setInvoiceNumber(data.numeroFacture);
+                setInvoiceDate(data.dateFacture);
+                setArticles(data.articles.map(a => ({ ...a, delivered: a.delivered ?? false })));
+                setAmountPaid(data.amountPaid || 0);
+                setInvoiceType(data.type || InvoiceType.PROFORMA);
+
+                const currentCompany = companies.find(c => c.id === data.selectedCompany.id) || companies.find(c => c.isDefault) || companies[0];
+                setSelectedCompany(currentCompany || null);
+            } else {
+                const defaultComp = companies.find(c => c.isDefault) || companies[0];
+                setSelectedCompany(defaultComp);
+            }
+        }
+    }, [companies, selectedCompany]);
 
     const handleClearData = () => {
-        if (confirm('Êtes-vous sûr de vouloir effacer toutes les données ?')) {
+        if (confirm('Effacer toutes les données ?')) {
             clearInvoiceData();
-            // Reset form
-            setSelectedCompany(companies[0]);
-            setClientName('');
-            setClientAddress('');
-            setInvoiceNumber('');
-            setInvoiceDate(new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }));
+            setClientNom('');
+            setClientAdresse('');
             setArticles([{ designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false }]);
             setAmountPaid(0);
+            setInvoiceType(InvoiceType.PROFORMA);
+            const seq = getNextSequenceNumber();
+            setInvoiceNumber(formatBaseInvoiceNumber(seq));
         }
     };
 
-    const handleAddArticle = () => {
-        setArticles([...articles, { designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false }]);
-    };
-
-    const handleRemoveArticle = (index: number) => {
-        if (articles.length > 1) {
-            setArticles(articles.filter((_, i) => i !== index));
-        }
-    };
-
-    const handleUpdateArticle = (index: number, article: Article) => {
-        const newArticles = [...articles];
-        newArticles[index] = article;
-        setArticles(newArticles);
-    };
-
-    const handleUpdateAllArticles = (updatedArticles: Article[]) => {
+    const handleUpdateAllArticles = useCallback((updatedArticles: Article[]) => {
         setArticles(updatedArticles);
-    };
+    }, []);
+
+    const onAddArticle = useCallback(() => {
+        setArticles(prev => [...prev, { designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false }]);
+    }, []);
+
+    const onRemoveArticle = useCallback((idx: number) => {
+        setArticles(prev => prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev);
+    }, []);
+
+    const onUpdateArticle = useCallback((idx: number, art: Article) => {
+        setArticles(prev => {
+            const newArts = [...prev];
+            newArts[idx] = art;
+            return newArts;
+        });
+    }, []);
+
+    const totalFacture = useMemo(() => articles.reduce((sum, article) => sum + article.totalPrice, 0), [articles]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-
-
-        const totalFacture = articles.reduce((sum, article) => sum + article.totalPrice, 0);
+        if (!selectedCompany) {
+            alert("Veuillez configurer au moins une entreprise dans les paramètres.");
+            return;
+        }
 
         const invoiceData: InvoiceData = {
-            client: {
-                nom: clientName,
-                adresse: clientAddress,
-            },
+            client: { nom: clientNom, adresse: clientAdresse },
             numeroFacture: invoiceNumber,
             dateFacture: invoiceDate,
             articles,
             totalFacture,
-            selectedCompany: selectedCompany || companies[0],
+            selectedCompany: selectedCompany!,
             amountPaid,
+            type: invoiceType,
         };
 
         saveInvoiceData(invoiceData);
+        saveInvoiceCloud(invoiceData, selectedCompany.id, totalFacture);
         router.push('/preview');
     };
 
     return (
-        <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Welcome Animation Section */}
-            <div className={styles.welcomeSection}>
-                <div className={styles.floatingIcons}>
-                    <span className={styles.icon} style={{ animationDelay: '0s' }}>🧾</span>
-                    <span className={styles.icon} style={{ animationDelay: '1s' }}>💰</span>
-                    <span className={styles.icon} style={{ animationDelay: '2s' }}>📊</span>
-                    <span className={styles.icon} style={{ animationDelay: '3s' }}>📝</span>
-                </div>
-                <h1 className={styles.welcomeTitle}>
-                    Générateur de Factures <span className={styles.highlight}>Pro</span>
-                </h1>
-            </div>
+        <form className={styles.form} onSubmit={handleSubmit}>
 
-            <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Informations du client</h2>
-                <div className={styles.grid}>
+            <div className={styles.formGrid}>
+                {/* SECTION CLIENT */}
+                <div className={styles.section}>
+                    <h2 className={styles.sectionTitle}>🤝 Client</h2>
                     <div className={styles.field}>
-                        <label htmlFor="clientName" className={styles.label}>
-                            Nom du client *
-                        </label>
+                        <label className={styles.label}>Nom du client *</label>
                         <input
                             type="text"
-                            id="clientName"
-                            value={clientName}
-                            onChange={(e) => setClientName(e.target.value)}
+                            value={clientNom}
+                            onChange={(e) => setClientNom(e.target.value)}
                             className={styles.input}
                             required
-                            placeholder="Mr Mamadou Saïdou Diallo"
+                            placeholder="Mamadou Saïdou Diallo"
                         />
                     </div>
-                    <div className={styles.field}>
-                        <label htmlFor="clientAddress" className={styles.label}>
-                            Adresse du client *
-                        </label>
+                    <div className={styles.field} style={{ marginTop: '1rem' }}>
+                        <label className={styles.label}>Adresse du client *</label>
                         <input
                             type="text"
-                            id="clientAddress"
-                            value={clientAddress}
-                            onChange={(e) => setClientAddress(e.target.value)}
+                            value={clientAdresse}
+                            onChange={(e) => setClientAdresse(e.target.value)}
                             className={styles.input}
                             required
                             placeholder="Kounsitel (Guinée)"
                         />
                     </div>
                 </div>
-            </div>
 
-            <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Informations de la facture</h2>
-                <div className={styles.grid}>
-                    <div className={styles.field}>
-                        <label htmlFor="invoiceNumber" className={styles.label}>
-                            Numéro de facture *
-                        </label>
-                        <div className={styles.inputGroup}>
+                {/* SECTION DOCUMENT */}
+                <div className={styles.section}>
+                    <h2 className={styles.sectionTitle}>📄 Document</h2>
+                    <div className={styles.docGrid}>
+                        <div className={styles.field}>
+                            <label className={styles.label}>Type</label>
+                            <select
+                                value={invoiceType}
+                                onChange={(e) => setInvoiceType(e.target.value as InvoiceType)}
+                                className={styles.input}
+                            >
+                                <option value={InvoiceType.PROFORMA}>Proforma</option>
+                                <option value={InvoiceType.DEFINITIVE}>Définitive</option>
+                                <option value={InvoiceType.BON_LIVRAISON}>Livraison</option>
+                                <option value={InvoiceType.SIMPLE}>Simple</option>
+                            </select>
+                        </div>
+                        <div className={styles.field}>
+                            <label className={styles.label}>N° Facture</label>
+                            <div className={styles.inputGroup}>
+                                <input
+                                    type="text"
+                                    value={invoiceNumber}
+                                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                                    className={styles.input}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setInvoiceNumber(formatBaseInvoiceNumber(getNextSequenceNumber()))}
+                                    className={styles.suggestButton}
+                                >
+                                    🎲
+                                </button>
+                            </div>
+                        </div>
+                        <div className={styles.field}>
+                            <label className={styles.label}>Date</label>
                             <input
                                 type="text"
-                                id="invoiceNumber"
-                                value={invoiceNumber}
-                                onChange={(e) => setInvoiceNumber(e.target.value)}
+                                value={invoiceDate}
+                                onChange={(e) => setInvoiceDate(e.target.value)}
                                 className={styles.input}
-                                style={{ flex: 1 }}
-                                required
-                                placeholder="000xk215"
+                                placeholder="JJ/MM/AAAA"
                             />
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const date = new Date();
-                                    const year = date.getFullYear().toString().slice(-2);
-                                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                                    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-                                    setInvoiceNumber(`FAC-${year}${month}-${random}`);
-                                }}
-                                className={styles.suggestButton}
-                                title="Générer un numéro"
-                            >
-                                🎲
-                            </button>
                         </div>
-                    </div>
-                    <div className={styles.field}>
-                        <label htmlFor="invoiceDate" className={styles.label}>
-                            Date de la facture *
-                        </label>
-                        <input
-                            type="text"
-                            id="invoiceDate"
-                            value={invoiceDate}
-                            onChange={(e) => setInvoiceDate(e.target.value)}
-                            className={styles.input}
-                            required
-                            placeholder="JJ/MM/AAAA"
-                        />
-                    </div>
-                    <div className={styles.field}>
-                        <label htmlFor="amountPaid" className={styles.label}>
-                            Montant payé (GNF)
-                        </label>
-                        <input
-                            type="number"
-                            id="amountPaid"
-                            value={amountPaid}
-                            onChange={(e) => setAmountPaid(Number(e.target.value) || 0)}
-                            className={styles.input}
-                            min="0"
-                            placeholder="0"
-                        />
                     </div>
                 </div>
             </div>
 
             <ArticleList
                 articles={articles}
-                onAddArticle={handleAddArticle}
-                onRemoveArticle={handleRemoveArticle}
-                onUpdateArticle={handleUpdateArticle}
+                onAddArticle={onAddArticle}
+                onRemoveArticle={onRemoveArticle}
+                onUpdateArticle={onUpdateArticle}
                 onUpdateAllArticles={handleUpdateAllArticles}
+                amountPaid={amountPaid}
+                onAmountPaidChange={setAmountPaid}
             />
 
             <div className={styles.submitContainer}>
                 <button type="button" onClick={handleClearData} className={styles.clearButton}>
-                    🗑️ Effacer tout
+                    🗑️ Réinitialiser
                 </button>
                 <button type="submit" className={styles.submitButton}>
-                    Générer la facture →
+                    Finaliser et Prévisualiser →
                 </button>
             </div>
         </form>

@@ -13,6 +13,8 @@ export const companies: Company[] = [
         phone: '(+224) 620 037 778',
         email: 'mouctardh45@gmail.com',
         hasStyledLogo: true, // Has the big 3D styled logo
+        isDefault: true,
+        templateId: 'template_standard'
     },
     {
         id: 'mouctar',
@@ -23,6 +25,8 @@ export const companies: Company[] = [
         phone: '(+224) 620 037 778',
         email: 'mouctardh45@gmail.com',
         hasStyledLogo: false, // Simple text, no styled logo
+        isDefault: false,
+        templateId: 'template_standard'
     },
     {
         id: 'thiernodjo',
@@ -33,6 +37,8 @@ export const companies: Company[] = [
         phone: '622 227 115 / 626 121 245',
         email: '',
         hasStyledLogo: false, // Simple text, no styled logo
+        isDefault: false,
+        templateId: 'template_standard'
     },
 ];
 

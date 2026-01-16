@@ -138,20 +138,80 @@
     opacity: 0.5;
 }
 
-.total {
+.footerSummary {
     margin-top: 1.5rem;
-    text-align: right;
-    font-size: 1.25rem;
-    padding: 1rem;
+    padding: 1.5rem;
     background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
     border-radius: 8px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.totalBlock {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 1.25rem;
+    color: #2d3748;
 }
 
 .totalAmount {
     color: #2b6cb0;
     font-weight: 700;
     font-size: 1.5rem;
-    margin-left: 1rem;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.acompteBlock {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.acompteBlock label {
+    font-weight: 600;
+    color: #4a5568;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+.inputLocal {
+    border: none;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d3748;
+    width: 120px;
+    text-align: right;
+    outline: none;
+    background: transparent;
+}
+
+.inputLocal:focus {
+    color: #3182ce;
+}
+
+@media (max-width: 768px) {
+    .footerSummary {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .totalBlock,
+    .acompteBlock {
+        justify-content: space-between;
+        width: 100%;
+    }
 }
 
 .checkboxCell {

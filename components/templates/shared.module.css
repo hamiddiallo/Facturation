@@ -1,0 +1,85 @@
+/* Base page container for all invoices */
+.invoice {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 15mm;
+    margin: 0 auto;
+    background: white;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #1a202c;
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* Shared Table Styles */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+}
+
+.table th {
+    background: #f8fafc;
+    color: #4a5568;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    text-align: left;
+}
+
+.table td {
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    font-size: 0.875rem;
+}
+
+/* Signature & Seal area */
+.signatureSection {
+    margin-top: 3rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.signatureBox {
+    width: 200px;
+    text-align: center;
+}
+
+.signatureLabel {
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-decoration: underline;
+    margin-bottom: 3rem;
+    display: block;
+}
+
+/* Seal image positioning */
+.sealImage {
+    max-width: 150px;
+    max-height: 100px;
+    object-fit: contain;
+    margin-top: 5px;
+}
+
+/* Utils */
+.textRight {
+    text-align: right;
+}
+
+.textCenter {
+    text-align: center;
+}
+
+.bold {
+    font-weight: 700;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.noBorder {
+    border: none !important;
+}

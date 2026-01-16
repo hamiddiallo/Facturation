@@ -15,63 +15,72 @@
 
 .invoiceTitle {
     font-size: 1.8rem;
+    /* Réduit de 2.2rem */
     font-weight: 700;
-    margin: 0 0 0.25rem 0;
+    margin: 0 0 0.5rem 0;
     color: #000;
 }
 
 .titleLine {
     border: none;
     border-top: 2px solid #808080;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.75rem 0;
 }
 
 .thiernodjoDate {
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 1rem;
+    /* Réduit de 1.1rem */
 }
 
 .middle {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 1rem;
+    align-items: flex-start;
+    /* Aligner en haut */
+    margin-bottom: 1.25rem;
+    gap: 1rem;
+    /* Utiliser gap au lieu de margin */
 }
 
 .entreprise {
     text-align: center;
     flex: 1;
-    margin-right: 2rem;
+    min-width: 0;
+    /* Important pour flexbox text overflow */
 }
 
 .companyName {
     font-family: 'Times New Roman', serif;
-    font-size: 45px;
+    font-size: 40px;
+    /* Légèrement réduit pour sécurité */
     color: rgb(10, 16, 96);
     text-transform: uppercase;
     margin: 0;
-    letter-spacing: -2px;
-    text-shadow:
-        1px 1px 0 #fff,
-        3px 3px 0 rgb(10, 16, 96);
+    letter-spacing: -1px;
+    text-shadow: 2px 2px 0 rgb(10, 16, 96);
+    /* Simplifié */
     line-height: 1.1;
+    word-wrap: break-word;
+    /* Éviter débordement */
 }
 
 .companyNameSimple {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 14px;
+    font-size: 16px;
     color: #000;
     text-transform: uppercase;
     margin: 0;
     font-weight: 700;
     letter-spacing: 0.5px;
-    line-height: 1.1;
+    line-height: 1.2;
 }
 
 .entreprise p {
-    margin: 0.1rem 0;
-    font-size: 11px;
-    line-height: 1.2;
+    margin: 0.15rem 0;
+    font-size: 12px;
+    line-height: 1.3;
 }
 
 .entreprise p:nth-child(2) {
@@ -82,41 +91,48 @@
 .client {
     text-align: center;
     flex: 1;
+    min-width: 0;
+    /* Important pour flexbox */
 }
 
 .dates {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .dates p,
 .dates h4 {
-    margin: 0.1rem 0;
-    font-size: 0.8rem;
+    margin: 0.15rem 0;
+    font-size: 0.9rem;
+    /* Réduit de 1rem */
 }
 
 .client h2 {
-    font-size: 1rem;
-    margin: 0.25rem 0;
+    font-size: 1.1rem;
+    /* Réduit de 1.3rem */
+    margin: 0.3rem 0;
 }
 
 .client p {
-    margin: 0.1rem 0;
-    font-size: 0.75rem;
-    line-height: 1.2;
+    margin: 0.15rem 0;
+    font-size: 0.9rem;
+    /* Réduit de 1rem */
+    line-height: 1.3;
 }
 
 .details {
     text-align: center;
-    margin: 0.5rem 0;
+    margin: 0.75rem 0;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
+    /* Réduit de 1.2rem */
 }
 
 .table {
     width: 100%;
     border-collapse: collapse;
-    margin: 0.5rem 0;
+    margin: 0.75rem 0;
     border: 1px solid #0a2558;
+    /* Bordure revenue à 1px */
 }
 
 .tableHead {
@@ -127,18 +143,21 @@
 .table th,
 .table td {
     border: 1px solid #0a2558;
-    padding: 0.2rem 0.3rem;
+    padding: 0.3rem 0.4rem;
+    /* Padding réduit */
     text-align: left;
 }
 
 .table th {
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
+    /* Réduit de 1rem */
 }
 
 .table td {
-    font-size: 0.7rem;
-    line-height: 1.2;
+    font-size: 0.8rem;
+    /* Réduit de 0.95rem */
+    line-height: 1.3;
 }
 
 .table tbody tr:last-child {
@@ -146,9 +165,10 @@
 }
 
 .arrete {
-    margin: 0.5rem 0;
-    line-height: 1.3;
-    font-size: 0.75rem;
+    margin: 0.75rem 0;
+    line-height: 1.4;
+    font-size: 0.9rem;
+    /* Réduit de 1rem */
 }
 
 .arrete p {
@@ -156,13 +176,15 @@
 }
 
 .footer {
-    margin-top: 0.5rem;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    /* Réduit de 1rem */
 }
 
 .piedPage {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .gauche,
@@ -170,18 +192,265 @@
     font-weight: 600;
 }
 
+/* Styles spécifiques pour le design Thiernodjo (Style Fady Shop) */
+.fadyContainer {
+    font-family: 'Times New Roman', serif;
+    color: #000;
+}
+
+.fadyHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+    /* Increased from 0.2rem */
+    padding-top: 0.5rem;
+    /* Increased from 0.2rem */
+}
+
+.cachetBox {
+    border: 1px dashed #ddd;
+    width: 140px;
+    /* Increased from 120px */
+    height: 90px;
+    /* Increased from 80px */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #ccc;
+    font-size: 0.85rem;
+}
+
+.headerCenter {
+    text-align: center;
+    flex: 1;
+    margin: 0 0.5rem;
+}
+
+.fadyTitle {
+    color: #2b5c92;
+    font-size: 2.8rem;
+    /* Increased from 2.5rem */
+    font-weight: bold;
+    margin: 0;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.fadySubtitle {
+    font-style: italic;
+    font-size: 1.1rem;
+    /* Increased from 1rem */
+    margin: 0.2rem 0;
+}
+
+.fadyPhone {
+    font-size: 1rem;
+    /* Increased from 0.9rem */
+    margin: 0;
+}
+
+.blueLine {
+    border: none;
+    border-top: 1px solid #2b5c92;
+    margin: 0.5rem 0;
+    /* Increased from 0.3rem */
+}
+
+.invoiceInfoBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    /* Increased from 0.3rem */
+}
+
+.factureTitle {
+    font-size: 1.1rem;
+    /* Increased from 1rem */
+    font-weight: bold;
+    color: #2b5c92;
+    margin: 0;
+}
+
+.factureNumber {
+    color: #ff3333;
+    font-weight: bold;
+}
+
+.fadyDate {
+    font-size: 0.85rem;
+    /* Increased from 0.8rem */
+    font-weight: bold;
+}
+
+.clientBox {
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    /* Increased from 0.3rem */
+    margin-bottom: 0.8rem;
+    /* Increased from 0.5rem */
+    background-color: #f9f9f9;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.clientLabel {
+    font-weight: bold;
+    color: #2b5c92;
+    font-size: 1.1rem;
+    /* Increased from 1rem */
+    white-space: nowrap;
+}
+
+.clientValue {
+    font-size: 1.2rem;
+    /* Increased from 1.1rem */
+    font-weight: bold;
+    border-bottom: 1px dotted #ccc;
+    flex: 1;
+}
+
+/* Tableau Fady Style */
+.fadyTable {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #2b5c92;
+    margin-bottom: 0;
+}
+
+.fadyTable th {
+    background-color: transparent;
+    color: #000;
+    font-weight: bold;
+    text-align: center;
+    border: 1px solid #2b5c92;
+    padding: 0.3rem 0.4rem;
+    /* Increased from 0.2rem 0.3rem */
+    font-size: 0.95rem;
+    /* Increased from 0.85rem */
+}
+
+.fadyTable td {
+    border: 1px solid #2b5c92;
+    padding: 0.3rem 0.4rem;
+    /* Increased from 0.2rem 0.3rem */
+    font-size: 0.95rem;
+    /* Increased from 0.85rem */
+    line-height: 1.1;
+}
+
+.totalRow {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -1px;
+}
+
+.totalLabelBox {
+    border: 1px solid #2b5c92;
+    padding: 0.4rem 0.6rem;
+    /* Increased from 0.3rem 0.5rem */
+    font-weight: bold;
+    text-align: right;
+    width: 180px;
+    /* Increased from 150px */
+    font-size: 1rem;
+    /* Increased from 0.9rem */
+}
+
+.totalValueBox {
+    border: 1px solid #2b5c92;
+    border-left: none;
+    padding: 0.4rem 0.6rem;
+    /* Increased from 0.3rem 0.5rem */
+    font-weight: bold;
+    text-align: right;
+    width: 180px;
+    /* Increased from 150px */
+    font-size: 1.1rem;
+    /* Increased from 1rem */
+    color: #2b5c92;
+}
+
+.arreteText {
+    margin: 0.8rem 0;
+    /* Increased from 0.5rem */
+    font-style: italic;
+    font-weight: bold;
+    font-size: 1rem;
+    /* Increased from 0.9rem */
+}
+
+.nbText {
+    text-align: center;
+    font-style: italic;
+    font-weight: bold;
+    font-size: 0.85rem;
+    /* Increased from 0.8rem */
+    margin: 0.8rem 0 0.8rem 0;
+    /* Increased from 0.5rem */
+    border-top: 1px dotted #ccc;
+    border-bottom: 1px dotted #ccc;
+    padding: 0.4rem 0;
+    /* Increased from 0.3rem */
+}
+
+.fadyFooter {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.8rem;
+    /* Increased from 0.5rem */
+    padding: 0 1rem;
+}
+
+.signature {
+    color: #2b5c92;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 1rem;
+    /* Increased from 0.9rem */
+}
+
 @media print {
     .invoice {
         margin: 0;
-        /* Keep padding for print to preserve margins */
     }
 
-    .table {
+    .fadyTable,
+    .totalLabelBox,
+    .totalValueBox {
         page-break-inside: avoid;
+        border-color: #2b5c92 !important;
+        border-width: 1px !important;
+        /* Force thin */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 
-    .arrete,
-    .footer {
-        page-break-inside: avoid;
+    .fadyTable th,
+    .fadyTable td {
+        border: 1px solid #2b5c92 !important;
+        /* Force thin */
+        color: #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        padding: 0.3rem 0.4rem !important;
+        /* Match standard style */
+    }
+
+    .fadyTitle,
+    .factureTitle,
+    .clientLabel,
+    .signature {
+        color: #2b5c92 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .factureNumber {
+        color: #ff3333 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 }

@@ -1,5 +1,4 @@
-'use client';
-
+import React, { memo } from 'react';
 import { Article } from '@/lib/types';
 import styles from './ArticleList.module.css';
 
@@ -9,15 +8,19 @@ interface ArticleListProps {
     onUpdateAllArticles: (articles: Article[]) => void;
     onRemoveArticle: (index: number) => void;
     onAddArticle: () => void;
+    amountPaid: number;
+    onAmountPaidChange: (amount: number) => void;
 }
 
-export default function ArticleList({
+const ArticleList = memo(({
     articles,
     onUpdateArticle,
     onUpdateAllArticles,
     onRemoveArticle,
     onAddArticle,
-}: ArticleListProps) {
+    amountPaid,
+    onAmountPaidChange,
+}: ArticleListProps) => {
     const handleFieldChange = (index: number, field: keyof Article, value: string | number) => {
         const article = { ...articles[index] };
 
@@ -152,12 +155,27 @@ export default function ArticleList({
                 </table>
             </div>
 
-            <div className={styles.total}>
-                <strong>Total: </strong>
-                <span className={styles.totalAmount}>
-                    {articles.reduce((sum, article) => sum + article.totalPrice, 0).toLocaleString()} GNF
-                </span>
+            <div className={styles.footerSummary}>
+                <div className={styles.totalBlock}>
+                    <strong>Total: </strong>
+                    <span className={styles.totalAmount}>
+                        {articles.reduce((sum, article) => sum + article.totalPrice, 0).toLocaleString()} GNF
+                    </span>
+                </div>
+                <div className={styles.acompteBlock}>
+                    <label>Acompte :</label>
+                    <input
+                        type="number"
+                        value={amountPaid}
+                        onChange={(e) => onAmountPaidChange(Number(e.target.value) || 0)}
+                        className={styles.inputLocal}
+                        placeholder="0"
+                    />
+                    <span>GNF</span>
+                </div>
             </div>
         </div>
     );
-}
+});
+
+export default ArticleList;

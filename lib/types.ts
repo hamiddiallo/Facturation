@@ -11,6 +11,9 @@ export interface Company {
   phone: string;
   email: string;
   hasStyledLogo?: boolean; // True for ETS MLF with 3D logo, false for simple text
+  sealImage?: string; // Base64 signature or seal image
+  isDefault: boolean;
+  templateId?: string;
 }
 
 export interface Client {
@@ -36,6 +39,7 @@ export interface InvoiceData {
   totalFacture: number;
   selectedCompany: Company;
   amountPaid?: number; // Amount already paid
+  type: InvoiceType;
 }
 
 export enum InvoiceType {

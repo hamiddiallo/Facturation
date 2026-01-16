@@ -1,0 +1,176 @@
+.container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at top right, #1a202c, #2d3748);
+    background-attachment: fixed;
+    padding: 1.5rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 3rem;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 440px;
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: linear-gradient(to right, #63b3ed, #a3bffa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.75rem;
+    letter-spacing: -1px;
+}
+
+.subtitle {
+    color: #a0aec0;
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.label {
+    font-weight: 500;
+    color: #cbd5e0;
+    font-size: 0.9rem;
+    margin-left: 0.2rem;
+}
+
+.input {
+    padding: 1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    font-size: 1rem;
+    color: white;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input::placeholder {
+    color: #718096;
+}
+
+.input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #63b3ed;
+    box-shadow: 0 0 0 4px rgba(99, 179, 237, 0.15);
+}
+
+.button {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    color: white;
+    border: none;
+    padding: 1.1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    box-shadow: 0 10px 15px -3px rgba(66, 153, 225, 0.3);
+}
+
+.button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
+    transform: scale(1.02);
+    box-shadow: 0 20px 25px -5px rgba(66, 153, 225, 0.4);
+}
+
+.button:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+}
+
+.message {
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    text-align: center;
+    font-weight: 500;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.error {
+    background: rgba(245, 101, 101, 0.1);
+    color: #feb2b2;
+    border: 1px solid rgba(245, 101, 101, 0.2);
+}
+
+.success {
+    background: rgba(72, 187, 120, 0.1);
+    color: #9ae6b4;
+    border: 1px solid rgba(72, 187, 120, 0.2);
+}
+
+.footer {
+    margin-top: 2.5rem;
+    text-align: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer p {
+    color: #718096;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+@media (max-width: 480px) {
+    .card {
+        padding: 2rem 1.5rem;
+    }
+
+    .title {
+        font-size: 2rem;
+    }
+}

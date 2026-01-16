@@ -1,0 +1,247 @@
+.page {
+    min-height: 100vh;
+    background: #f7fafc;
+    padding: 2rem 1rem;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.header h1 {
+    font-size: 2rem;
+    color: #1a202c;
+    margin: 0;
+    font-weight: 800;
+}
+
+.backButton {
+    background: #fff;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.backButton:hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+}
+
+/* PANNEAU DE RECHERCHE */
+.searchPanel {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    border: 1px solid #edf2f7;
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 200px;
+}
+
+.filterGroup label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.input {
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: #f8fafc;
+    transition: all 0.2s;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #3182ce;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.tableCounter {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: #4a5568;
+}
+
+.tableCounter strong {
+    color: #3182ce;
+}
+
+/* TABLEAU SCROLLABLE */
+.tableContainer {
+    background: white;
+    padding: 1rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    border: 1px solid #edf2f7;
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    text-align: left;
+    padding: 1rem;
+    background: #f8fafc;
+    color: #718096;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    border-bottom: 2px solid #edf2f7;
+}
+
+.table td {
+    padding: 1rem;
+    border-bottom: 1px solid #edf2f7;
+    color: #2d3748;
+}
+
+.table tr:hover {
+    background: #f8fafc;
+}
+
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.badgeProforma {
+    background: #ebf8ff;
+    color: #3182ce;
+}
+
+.badgeDefinitive {
+    background: #f0fff4;
+    color: #2f855a;
+}
+
+.badgeSimple {
+    background: #fffaf0;
+    color: #b7791f;
+}
+
+.badgeBL {
+    background: #faf5ff;
+    color: #805ad5;
+}
+
+.printButton {
+    background: #f7fafc;
+    color: #3182ce;
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.printButton:hover {
+    background: #ebf8ff;
+    border-color: #bee3f8;
+    transform: translateY(-1px);
+}
+
+.actionCell {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.actionBtn {
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.actionBtn:hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+    transform: translateY(-1px);
+}
+
+.actionBtn.danger {
+    color: #e53e3e;
+}
+
+.actionBtn.danger:hover {
+    background: #fff5f5;
+    border-color: #feb2b2;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 4rem;
+    color: #a0aec0;
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .searchPanel {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .filterGroup {
+        min-width: 100%;
+    }
+
+    .tableContainer {
+        padding: 0.5rem;
+        border-radius: 12px;
+    }
+}

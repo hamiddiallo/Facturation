@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   description: "Créez vos factures professionnelles en quelques clics. Générez des factures proforma, définitives et bons de livraison.",
 };
 
+import AuthProvider from "@/components/AuthProvider";
+import MainLayout from "@/components/MainLayout";
+import SWRConfigContext from "@/components/SWRConfigContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,7 +29,11 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <AuthProvider>
+          <SWRConfigContext>
+            <MainLayout>{children}</MainLayout>
+          </SWRConfigContext>
+        </AuthProvider>
       </body>
     </html>
   );

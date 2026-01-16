@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { InvoiceData, InvoiceType, Company } from '@/lib/types';
 import { getInvoiceData } from '@/lib/storage';
-import { companies } from '@/lib/companies';
+import { getCompanies } from '@/lib/supabaseServices';
+import { adaptInvoiceNumber } from '@/lib/counter';
 import FactureProforma from '@/components/templates/FactureProforma';
 import FactureDefinitive from '@/components/templates/FactureDefinitive';
 import BonLivraison from '@/components/templates/BonLivraison';
@@ -16,17 +17,43 @@ export default function PreviewPage() {
     const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
     const [selectedType, setSelectedType] = useState<InvoiceType>(InvoiceType.PROFORMA);
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+    const [companies, setCompanies] = useState<Company[]>([]); // Added this state
 
     useEffect(() => {
-        const data = getInvoiceData();
-        if (!data) {
-            alert('Aucune donnée de facture trouvée. Veuillez créer une facture.');
-            router.push('/');
-        } else {
+        const loadInitialData = async () => {
+            const dbCompanies = await getCompanies();
+            setCompanies(dbCompanies);
+
+            const data = getInvoiceData();
+            if (!data) {
+                alert('Aucune donnée de facture trouvée. Veuillez créer une facture.');
+                router.push('/');
+                return;
+            }
+
+            // Re-hydrate company to ensure we have the latest definition (styles, fields)
+            let freshCompany = dbCompanies.find((c: Company) => c.id === data.selectedCompany.id);
+            if (!freshCompany && dbCompanies.length > 0) {
+                freshCompany = dbCompanies.find((c: Company) => c.isDefault) || dbCompanies[0];
+            }
+
+            if (freshCompany) {
+                data.selectedCompany = freshCompany;
+            }
+
             setInvoiceData(data);
             setSelectedCompany(data.selectedCompany);
-        }
+            if (data.type) {
+                setSelectedType(data.type);
+            }
+        };
+
+        loadInitialData();
     }, [router]);
+
+    const handleTypeChange = (type: InvoiceType) => {
+        setSelectedType(type);
+    };
 
     const handlePrint = () => {
         window.print();
@@ -47,6 +74,7 @@ export default function PreviewPage() {
     };
 
     const [scale, setScale] = useState(1);
+    const [showDelivered, setShowDelivered] = useState(true);
 
     useEffect(() => {
         const handleResize = () => {
@@ -71,12 +99,41 @@ export default function PreviewPage() {
         return <div className={styles.loading}>Chargement...</div>;
     }
 
+    // Adapt the invoice number dynamically for display
+    const adaptedData: InvoiceData = {
+        ...invoiceData,
+        selectedCompany: selectedCompany,
+        numeroFacture: adaptInvoiceNumber(invoiceData.numeroFacture, selectedCompany, selectedType)
+    };
+
+    const getTemplateLabel = (templateId?: string) => {
+        switch (templateId) {
+            case 'template_standard': return 'Modèle 1';
+            case 'template_modern': return 'Modèle 2';
+            case 'template_classic': return 'Modèle 3';
+            default: return 'Modèle 1';
+        }
+    };
+
     return (
         <div className={styles.page}>
             <div className={styles.controls}>
                 <button onClick={handleBack} className={styles.backButton}>
                     ← Retour au formulaire
                 </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f5f5f5', padding: '0.5rem', borderRadius: '4px' }}>
+                    <input
+                        type="checkbox"
+                        id="showDelivered"
+                        checked={showDelivered}
+                        onChange={(e) => setShowDelivered(e.target.checked)}
+                        style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="showDelivered" style={{ fontSize: '0.9rem', cursor: 'pointer', userSelect: 'none', fontWeight: 600 }}>
+                        Afficher colonne Livré
+                    </label>
+                </div>
 
                 <div className={styles.companySelector}>
                     <label className={styles.companySelectorLabel}>Entreprise:</label>
@@ -90,7 +147,7 @@ export default function PreviewPage() {
                     >
                         {companies.map((company) => (
                             <option key={company.id} value={company.id}>
-                                {company.displayName}
+                                {company.displayName} ({getTemplateLabel(company.templateId)})
                             </option>
                         ))}
                     </select>
@@ -99,25 +156,25 @@ export default function PreviewPage() {
                 <div className={styles.typeSelector}>
                     <button
                         className={`${styles.typeButton} ${selectedType === InvoiceType.PROFORMA ? styles.active : ''}`}
-                        onClick={() => setSelectedType(InvoiceType.PROFORMA)}
+                        onClick={() => handleTypeChange(InvoiceType.PROFORMA)}
                     >
                         Facture Proforma
                     </button>
                     <button
                         className={`${styles.typeButton} ${selectedType === InvoiceType.DEFINITIVE ? styles.active : ''}`}
-                        onClick={() => setSelectedType(InvoiceType.DEFINITIVE)}
+                        onClick={() => handleTypeChange(InvoiceType.DEFINITIVE)}
                     >
                         Facture Définitive
                     </button>
                     <button
                         className={`${styles.typeButton} ${selectedType === InvoiceType.BON_LIVRAISON ? styles.active : ''}`}
-                        onClick={() => setSelectedType(InvoiceType.BON_LIVRAISON)}
+                        onClick={() => handleTypeChange(InvoiceType.BON_LIVRAISON)}
                     >
                         Bon de Livraison
                     </button>
                     <button
                         className={`${styles.typeButton} ${selectedType === InvoiceType.SIMPLE ? styles.active : ''}`}
-                        onClick={() => setSelectedType(InvoiceType.SIMPLE)}
+                        onClick={() => handleTypeChange(InvoiceType.SIMPLE)}
                     >
                         Facture Simple
                     </button>
@@ -197,7 +254,7 @@ export default function PreviewPage() {
 
                         // Generate blob
                         const pdfBlob = pdf.output('blob');
-                        const filename = `Facture-${invoiceData?.numeroFacture || 'new'}.pdf`;
+                        const filename = `Facture-${adaptedData.numeroFacture}.pdf`;
                         const file = new File([pdfBlob], filename, { type: 'application/pdf' });
 
                         // Share or download
@@ -205,7 +262,7 @@ export default function PreviewPage() {
                             await navigator.share({
                                 files: [file],
                                 title: 'Facture',
-                                text: `Voici la facture N° ${invoiceData?.numeroFacture}`,
+                                text: `Voici la facture N° ${adaptedData.numeroFacture}`,
                             });
                         } else {
                             // Fallback: download
@@ -219,7 +276,6 @@ export default function PreviewPage() {
                     } catch (err: any) {
                         // Ignore share cancellation
                         if (err.name === 'AbortError' || err.message?.includes('Share canceled')) {
-                            console.log('Partage annulé par l\'utilisateur');
                             return;
                         }
                         console.error('Error sharing/downloading:', err);
@@ -250,10 +306,10 @@ export default function PreviewPage() {
                         marginLeft: scale < 1 ? `${(window.innerWidth - (210 * 3.78 * scale)) / 2}px` : '0'
                     }}
                 >
-                    {selectedType === InvoiceType.PROFORMA && <FactureProforma data={invoiceData} />}
-                    {selectedType === InvoiceType.DEFINITIVE && <FactureDefinitive data={invoiceData} />}
-                    {selectedType === InvoiceType.BON_LIVRAISON && <BonLivraison data={invoiceData} />}
-                    {selectedType === InvoiceType.SIMPLE && <FactureSimple data={invoiceData} />}
+                    {selectedType === InvoiceType.PROFORMA && <FactureProforma data={adaptedData} showDelivered={showDelivered} />}
+                    {selectedType === InvoiceType.DEFINITIVE && <FactureDefinitive data={adaptedData} showDelivered={showDelivered} />}
+                    {selectedType === InvoiceType.BON_LIVRAISON && <BonLivraison data={adaptedData} />}
+                    {selectedType === InvoiceType.SIMPLE && <FactureSimple data={adaptedData} showDelivered={showDelivered} />}
                 </div>
             </div>
         </div>
