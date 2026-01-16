@@ -12,8 +12,9 @@ import {
     deleteCompany as deleteCompanyCloud,
     setDefaultCompany as setDefaultCompanyCloud
 } from '@/lib/supabaseServices';
-import { adminCreateUser, adminDeleteUser, adminListUsers, adminUpdateProfile } from '@/lib/adminActions';
+import { adminCreateUser, adminDeleteUser, adminListUsers, adminUpdateProfile, uploadAvatarAction } from '@/lib/adminActions';
 import { useAuth } from '@/components/AuthProvider';
+import PasswordStrength from '@/components/PasswordStrength';
 import styles from './page.module.css';
 
 type MainTab = 'companies' | 'users';
@@ -48,6 +49,8 @@ export default function SettingsPage() {
     });
     const [editingUser, setEditingUser] = useState<any | null>(null);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+    const [isNewUserPasswordValid, setIsNewUserPasswordValid] = useState(false);
+    const [isEditingUserPasswordValid, setIsEditingUserPasswordValid] = useState(true);
 
     useEffect(() => {
         if (!authLoading && profile) {
@@ -162,9 +165,17 @@ export default function SettingsPage() {
     // --- Actions Utilisateurs ---
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!isNewUserPasswordValid) {
+            setStatus('Le mot de passe ne respecte pas les critères.', true);
+            return;
+        }
         setInternalLoading(true);
         try {
-            await adminCreateUser(newUser.email, newUser.password, newUser.fullName, newUser.role);
+            const res = await adminCreateUser(newUser.email, newUser.password, newUser.fullName, newUser.role);
+            if (!res.success) {
+                setStatus('Erreur: ' + res.error, true);
+                return;
+            }
             setNewUser({ email: '', password: '', fullName: '', role: 'user' });
             mutate('users');
             setStatus('Utilisateur créé avec succès !');
@@ -196,24 +207,68 @@ export default function SettingsPage() {
             email: user.email,
             role: user.role,
             status: user.status,
+            avatar_url: user.avatar_url,
             password: '' // Vide par défaut, optionnel
         });
         setIsUserModalOpen(true);
+    };
+
+    const handleUserAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !editingUser) return;
+
+        try {
+            const options = {
+                maxSizeMB: 0.15,
+                maxWidthOrHeight: 400,
+                useWebWorker: true,
+            };
+
+            setInternalLoading(true);
+            const compressedFile = await imageCompression(file, options);
+
+            const formData = new FormData();
+            formData.append('file', compressedFile);
+            formData.append('userId', editingUser.id);
+
+            const result = await uploadAvatarAction(formData);
+
+            if (result?.success && result.publicUrl) {
+                setEditingUser({ ...editingUser, avatar_url: result.publicUrl });
+                setStatus('Photo préparée (enregistrez pour confirmer)');
+            }
+        } catch (error) {
+            console.error('Erreur upload avatar:', error);
+            setStatus('Erreur lors de l\'envoi de la photo.', true);
+        } finally {
+            setInternalLoading(false);
+        }
     };
 
     const handleUpdateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingUser) return;
 
+        if (editingUser.password && !isEditingUserPasswordValid) {
+            setStatus('Le nouveau mot de passe ne respecte pas les critères.', true);
+            return;
+        }
+
         setInternalLoading(true);
         try {
-            await adminUpdateProfile(editingUser.id, {
+            const res = await adminUpdateProfile(editingUser.id, {
                 fullName: editingUser.fullName,
                 email: editingUser.email,
                 role: editingUser.role,
                 status: editingUser.status,
+                avatar_url: editingUser.avatar_url,
                 password: editingUser.password || undefined
             });
+
+            if (!res.success) {
+                setStatus('Erreur: ' + res.error, true);
+                return;
+            }
 
             setIsUserModalOpen(false);
             setEditingUser(null);
@@ -371,8 +426,17 @@ export default function SettingsPage() {
                                                 onChange={e => setNewUser({ ...newUser, password: e.target.value })}
                                                 required
                                             />
+                                            <PasswordStrength
+                                                password={newUser.password}
+                                                onValidate={setIsNewUserPasswordValid}
+                                            />
                                         </div>
-                                        <button type="submit" className={styles.saveButton} style={{ padding: '0.75rem 1.5rem' }}>
+                                        <button
+                                            type="submit"
+                                            className={styles.saveButton}
+                                            style={{ padding: '0.75rem 1.5rem' }}
+                                            disabled={loading || !isNewUserPasswordValid}
+                                        >
                                             Créer Accès
                                         </button>
                                     </form>
@@ -392,7 +456,18 @@ export default function SettingsPage() {
                                         <tbody>
                                             {users.map(u => (
                                                 <tr key={u.id}>
-                                                    <td style={{ padding: '1rem', fontWeight: 600 }}>{u.full_name}</td>
+                                                    <td style={{ padding: '1rem' }}>
+                                                        <div className={styles.userThumbSection}>
+                                                            {u.avatar_url ? (
+                                                                <img src={u.avatar_url} alt="" className={styles.userThumb} />
+                                                            ) : (
+                                                                <div className={styles.userThumbPlaceholder}>
+                                                                    {u.full_name?.[0]?.toUpperCase() || 'U'}
+                                                                </div>
+                                                            )}
+                                                            <span style={{ fontWeight: 600 }}>{u.full_name}</span>
+                                                        </div>
+                                                    </td>
                                                     <td style={{ padding: '1rem', color: '#718096' }}>{u.email}</td>
                                                     <td style={{ padding: '1rem' }}>
                                                         <span className={`${styles.badge} ${u.role === 'admin' ? styles.adminBadge : styles.userBadge}`}>
@@ -543,7 +618,7 @@ export default function SettingsPage() {
                                         </label>
                                         {editingCompany.sealImage && (
                                             <button
-                                                onClick={() => setEditingCompany({ ...editingCompany, sealImage: undefined })}
+                                                onClick={() => setEditingCompany({ ...editingCompany, sealImage: null })}
                                                 style={{ background: 'transparent', color: '#e53e3e', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                                             >
                                                 Retirer
@@ -574,6 +649,19 @@ export default function SettingsPage() {
 
                         <form onSubmit={handleUpdateUser}>
                             <div className={styles.modalBody}>
+                                <div className={styles.avatarSection} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
+                                    <div className={styles.userThumbPlaceholder} style={{ width: '80px', height: '80px', fontSize: '2rem', borderRadius: '50%' }}>
+                                        {editingUser.avatar_url ? (
+                                            <img src={editingUser.avatar_url} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                        ) : (
+                                            editingUser.fullName?.[0]?.toUpperCase() || 'U'
+                                        )}
+                                    </div>
+                                    <label className={styles.uploadButton} style={{ fontSize: '0.85rem' }}>
+                                        📷 Changer la photo
+                                        <input type="file" accept="image/*" onChange={handleUserAvatarUpload} style={{ display: 'none' }} />
+                                    </label>
+                                </div>
                                 <div className={styles.userFormGrid}>
                                     <div className={styles.formGroup}>
                                         <label>Nom Complet</label>
@@ -629,6 +717,10 @@ export default function SettingsPage() {
                                             onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
                                             placeholder="Laisser vide pour ne pas changer"
                                         />
+                                        <PasswordStrength
+                                            password={editingUser.password}
+                                            onValidate={setIsEditingUserPasswordValid}
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -637,7 +729,11 @@ export default function SettingsPage() {
                                 <button type="button" onClick={() => setIsUserModalOpen(false)} className={styles.cancelButton}>
                                     Annuler
                                 </button>
-                                <button type="submit" className={styles.saveButton}>
+                                <button
+                                    type="submit"
+                                    className={styles.saveButton}
+                                    disabled={internalLoading || (!!editingUser.password && !isEditingUserPasswordValid)}
+                                >
                                     Enregistrer
                                 </button>
                             </div>

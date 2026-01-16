@@ -11,7 +11,7 @@ export interface Company {
   phone: string;
   email: string;
   hasStyledLogo?: boolean; // True for ETS MLF with 3D logo, false for simple text
-  sealImage?: string; // Base64 signature or seal image
+  sealImage?: string | null; // Base64 signature or seal image
   isDefault: boolean;
   templateId?: string;
 }

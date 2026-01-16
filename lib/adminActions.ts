@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { normalizeText, normalizeEmail } from './textUtils';
 import { rateLimit } from './rateLimit';
 
-// Client standard avec clé service pour gestion directe de la table profiles
+// --- UTILITAIRES ---
 const getSupabaseAdmin = () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -14,6 +14,11 @@ const getSupabaseAdmin = () => {
         console.error('CRITICAL: Supabase URL or Service Role Key is missing in ENV');
     }
     return createClient(url, serviceRole);
+};
+
+// Helper pour transformer les erreurs Zod en string lisible
+const formatZodError = (error: z.ZodError): string => {
+    return error.issues.map((err: any) => err.message).join('. ');
 };
 
 // --- SCHEMAS DE VALIDATION ---
@@ -42,7 +47,8 @@ const UpdateUserSchema = z.object({
     email: z.string().email().optional(),
     role: z.enum(['admin', 'user']).optional(),
     status: z.enum(['active', 'inactive']).optional(),
-    password: PasswordPolicy.optional()
+    password: PasswordPolicy.optional(),
+    avatar_url: z.string().nullable().optional()
 });
 
 export async function verifyCredentials(email: string, pass: string) {
@@ -93,7 +99,8 @@ export async function verifyCredentials(email: string, pass: string) {
                 email: profile.email,
                 full_name: profile.full_name || '',
                 role: profile.role,
-                status: profile.status
+                status: profile.status,
+                avatar_url: profile.avatar_url
             }
         };
     } catch (e: any) {
@@ -110,35 +117,47 @@ export async function adminCreateUser(email: string, pass: string, fullName: str
         fullName: normalizeText(fullName),
         role
     });
-    if (!validated.success) throw new Error('Données invalides : ' + validated.error.message);
+
+    if (!validated.success) {
+        return { success: false, error: formatZodError(validated.error) };
+    }
 
     // Rate Limiting : 10 créations / minute
     if (!rateLimit('admin_create_user', { max: 10, windowMs: 1000 * 60 })) {
-        throw new Error('Trop de créations en peu de temps. Veuillez patienter.');
+        return { success: false, error: 'Trop de créations en peu de temps. Veuillez patienter.' };
     }
 
     const { email: cleanEmail, fullName: cleanName, password: cleanPass } = validated.data;
     const supabaseAdmin = getSupabaseAdmin();
 
-    // 1. Hachage manuel
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(cleanPass, salt);
+    try {
+        // 1. Hachage manuel
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(cleanPass, salt);
 
-    // 2. Insertion directe dans VOTRE table profiles uniquement
-    const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .insert([{
-            email: cleanEmail,
-            password_hash: passwordHash,
-            full_name: cleanName,
-            role: role,
-            status: 'active'
-        }])
-        .select()
-        .single();
+        // 2. Insertion directe dans VOTRE table profiles uniquement
+        const { data, error } = await supabaseAdmin
+            .from('profiles')
+            .insert([{
+                email: cleanEmail,
+                password_hash: passwordHash,
+                full_name: cleanName,
+                role: role,
+                status: 'active'
+            }])
+            .select()
+            .single();
 
-    if (error) throw error;
-    return { success: true, userId: data.id };
+        if (error) {
+            if (error.code === '23505') return { success: false, error: 'Cet email est déjà utilisé.' };
+            throw error;
+        }
+
+        return { success: true, userId: data.id };
+    } catch (err: any) {
+        console.error('Erreur adminCreateUser:', err.message);
+        return { success: false, error: 'Une erreur est survenue lors de la création.' };
+    }
 }
 
 export async function adminDeleteUser(userId: string) {
@@ -162,14 +181,17 @@ export async function adminListUsers() {
     return profiles;
 }
 
-export async function adminUpdateProfile(userId: string, data: { fullName?: string, email?: string, role?: string, status?: string, password?: string }) {
+export async function adminUpdateProfile(userId: string, data: { fullName?: string, email?: string, role?: string, status?: string, password?: string, avatar_url?: string }) {
     // Validation & Normalisation
     const validated = UpdateUserSchema.safeParse({
         ...data,
         fullName: data.fullName ? normalizeText(data.fullName) : undefined,
         email: data.email ? normalizeEmail(data.email) : undefined
     });
-    if (!validated.success) throw new Error('Données invalides : ' + validated.error.message);
+
+    if (!validated.success) {
+        return { success: false, error: formatZodError(validated.error) };
+    }
 
     const cleanData = validated.data;
     const supabaseAdmin = getSupabaseAdmin();
@@ -181,26 +203,67 @@ export async function adminUpdateProfile(userId: string, data: { fullName?: stri
     if (cleanData.email !== undefined) updates.email = cleanData.email;
     if (cleanData.role !== undefined) updates.role = cleanData.role;
     if (cleanData.status !== undefined) updates.status = cleanData.status;
+    if (cleanData.avatar_url !== undefined) updates.avatar_url = cleanData.avatar_url;
 
     if (cleanData.password) {
         const salt = await bcrypt.genSalt(10);
         updates.password_hash = await bcrypt.hash(cleanData.password, salt);
     }
 
-    const { error } = await supabaseAdmin
-        .from('profiles')
-        .update(updates)
-        .eq('id', userId);
+    try {
+        const { error } = await supabaseAdmin
+            .from('profiles')
+            .update(updates)
+            .eq('id', userId);
 
-    if (error) throw error;
-    return { success: true };
+        if (error) {
+            if (error.code === '23505') return { success: false, error: 'Cet email appartient déjà à un autre compte.' };
+            throw error;
+        }
+
+        return { success: true };
+    } catch (err: any) {
+        console.error('Erreur adminUpdateProfile:', err.message);
+        return { success: false, error: 'Erreur lors de la mise à jour.' };
+    }
+}
+
+export async function uploadAvatarAction(formData: FormData) {
+    const file = formData.get('file') as File;
+    const userId = formData.get('userId') as string;
+
+    if (!file || !userId) throw new Error('Données manquantes');
+
+    const supabaseAdmin = getSupabaseAdmin();
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}_${Date.now()}.${fileExt}`;
+
+    try {
+        const { data, error } = await supabaseAdmin.storage
+            .from('avatars')
+            .upload(fileName, file, {
+                contentType: file.type,
+                upsert: true
+            });
+
+        if (error) throw error;
+
+        const { data: urlData } = supabaseAdmin.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+
+        return { success: true, publicUrl: urlData.publicUrl };
+    } catch (e: any) {
+        console.error('Erreur upload serveur:', e.message);
+        throw e;
+    }
 }
 
 export async function getProfileById(userId: string) {
     const supabaseAdmin = getSupabaseAdmin();
     const { data: profile, error } = await supabaseAdmin
         .from('profiles')
-        .select('id, email, full_name, role, status')
+        .select('id, email, full_name, role, status, avatar_url')
         .eq('id', userId)
         .single();
 

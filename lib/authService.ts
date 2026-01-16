@@ -8,6 +8,7 @@ export interface UserProfile {
     full_name: string;
     role: string;
     status: string;
+    avatar_url?: string;
 }
 
 const SESSION_KEY = 'app_user_session';

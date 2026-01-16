@@ -74,6 +74,15 @@ export default function Sidebar() {
                 </nav>
 
                 <div className={styles.userSection}>
+                    <div className={styles.userAvatar}>
+                        {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} alt="Profile" className={styles.avatarImg} />
+                        ) : (
+                            <div className={styles.avatarInitial}>
+                                {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                        )}
+                    </div>
                     <div className={styles.userInfo}>
                         <span className={styles.userName}>{profile?.full_name || 'Utilisateur'}</span>
                         <span className={styles.userRole}>{profile?.role || 'Membre'}</span>
