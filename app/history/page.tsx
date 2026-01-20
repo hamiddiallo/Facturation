@@ -7,6 +7,7 @@ import { getInvoicesCloud, deleteInvoiceCloud } from '@/lib/supabaseServices';
 import { saveInvoiceData } from '@/lib/storage';
 import { InvoiceType } from '@/lib/types';
 import { toast } from 'sonner';
+import Skeleton from '@/components/Skeleton';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import styles from './page.module.css';
 
@@ -201,7 +202,11 @@ export default function HistoryPage() {
 
                 <div className={styles.tableContainer}>
                     {loading && invoices.length === 0 ? (
-                        <p style={{ textAlign: 'center', padding: '2rem' }}>Chargement de l'historique...</p>
+                        <div style={{ padding: '1rem' }}>
+                            {[...Array(5)].map((_, i) => (
+                                <Skeleton key={i} height="60px" className={styles.tableSkeleton} />
+                            ))}
+                        </div>
                     ) : (
                         <>
                             <div className={styles.tableCounter}>

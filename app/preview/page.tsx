@@ -6,13 +6,16 @@ import { InvoiceData, InvoiceType, Company } from '@/lib/types';
 import { getInvoiceData } from '@/lib/storage';
 import { getCompanies } from '@/lib/supabaseServices';
 import { adaptInvoiceNumber } from '@/lib/counter';
-import FactureProforma from '@/components/templates/FactureProforma';
-import FactureDefinitive from '@/components/templates/FactureDefinitive';
-import BonLivraison from '@/components/templates/BonLivraison';
-import FactureSimple from '@/components/templates/FactureSimple';
-import FactureModerneBlue from '@/components/templates/FactureModerneBlue';
+import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
+import Skeleton from '@/components/Skeleton';
 import styles from './page.module.css';
+
+const FactureProforma = dynamic(() => import('@/components/templates/FactureProforma'), { ssr: false });
+const FactureDefinitive = dynamic(() => import('@/components/templates/FactureDefinitive'), { ssr: false });
+const BonLivraison = dynamic(() => import('@/components/templates/BonLivraison'), { ssr: false });
+const FactureSimple = dynamic(() => import('@/components/templates/FactureSimple'), { ssr: false });
+const FactureModerneBlue = dynamic(() => import('@/components/templates/FactureModerneBlue'), { ssr: false });
 
 export default function PreviewPage() {
     const router = useRouter();
@@ -100,7 +103,16 @@ export default function PreviewPage() {
     }, []);
 
     if (!invoiceData || !selectedCompany) {
-        return <div className={styles.loading}>Chargement...</div>;
+        return (
+            <div className={styles.page}>
+                <div className={styles.controls} style={{ opacity: 0.5, pointerEvents: 'none' }}>
+                    <button className={styles.backButton}>Chargement...</button>
+                </div>
+                <div className={styles.previewContainer}>
+                    <Skeleton width="210mm" height="297mm" borderRadius="0" className={styles.pageSkeleton} />
+                </div>
+            </div>
+        );
     }
 
     // Adapt the invoice number dynamically for display

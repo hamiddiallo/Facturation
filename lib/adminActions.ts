@@ -2,11 +2,14 @@
 
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { normalizeText, normalizeEmail } from './textUtils';
 import { rateLimit } from './rateLimit';
 
 // --- UTILITAIRES ---
+const SESSION_COOKIE_NAME = 'facturation_auth_token';
+
 const getSupabaseAdmin = () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -91,17 +94,29 @@ export async function verifyCredentials(email: string, pass: string) {
             return { success: false, error: 'Compte désactivé.' };
         }
 
-        // 3. Retourner les infos (SANS le password_hash)
+        const user = {
+            id: profile.id,
+            email: profile.email,
+            full_name: profile.full_name || '',
+            role: profile.role,
+            status: profile.status,
+            avatar_url: profile.avatar_url
+        };
+
+        // 3. Définir le cookie de session (Sécurisé & HttpOnly)
+        const cookieStore = await cookies();
+        cookieStore.set(SESSION_COOKIE_NAME, JSON.stringify(user), {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7, // 1 semaine
+            path: '/'
+        });
+
+        // 4. Retourner les infos (SANS le password_hash)
         return {
             success: true,
-            user: {
-                id: profile.id,
-                email: profile.email,
-                full_name: profile.full_name || '',
-                role: profile.role,
-                status: profile.status,
-                avatar_url: profile.avatar_url
-            }
+            user
         };
     } catch (e: any) {
         console.error('Erreur fatale auth:', e?.message || e);
@@ -110,6 +125,10 @@ export async function verifyCredentials(email: string, pass: string) {
 }
 
 export async function adminCreateUser(email: string, pass: string, fullName: string, role: string = 'user') {
+    // Sécurité : Réservé aux admins
+    const session = await verifyServerSession('admin');
+    if (!session) return { success: false, error: 'Accès non autorisé.' };
+
     // Validation & Normalisation
     const validated = CreateUserSchema.safeParse({
         email: normalizeEmail(email),
@@ -161,6 +180,10 @@ export async function adminCreateUser(email: string, pass: string, fullName: str
 }
 
 export async function adminDeleteUser(userId: string) {
+    // Sécurité : Réservé aux admins
+    const session = await verifyServerSession('admin');
+    if (!session) throw new Error('Accès non autorisé.');
+
     const supabaseAdmin = getSupabaseAdmin();
     const { error } = await supabaseAdmin
         .from('profiles')
@@ -171,6 +194,10 @@ export async function adminDeleteUser(userId: string) {
 }
 
 export async function adminListUsers() {
+    // Sécurité : Réservé aux admins
+    const session = await verifyServerSession('admin');
+    if (!session) throw new Error('Accès non autorisé.');
+
     const supabaseAdmin = getSupabaseAdmin();
     const { data: profiles, error } = await supabaseAdmin
         .from('profiles')
@@ -182,6 +209,10 @@ export async function adminListUsers() {
 }
 
 export async function adminUpdateProfile(userId: string, data: { fullName?: string, email?: string, role?: string, status?: string, password?: string, avatar_url?: string }) {
+    // Sécurité : Réservé aux admins
+    const session = await verifyServerSession('admin');
+    if (!session) return { success: false, error: 'Accès non autorisé.' };
+
     // Validation & Normalisation
     const validated = UpdateUserSchema.safeParse({
         ...data,
@@ -232,6 +263,12 @@ export async function uploadAvatarAction(formData: FormData) {
     const file = formData.get('file') as File;
     const userId = formData.get('userId') as string;
 
+    // Sécurité : Doit être l'utilisateur lui-même ou un admin
+    const session = await verifyServerSession();
+    if (!session || (session.id !== userId && session.role !== 'admin')) {
+        throw new Error('Accès non autorisé.');
+    }
+
     if (!file || !userId) throw new Error('Données manquantes');
 
     const supabaseAdmin = getSupabaseAdmin();
@@ -269,4 +306,31 @@ export async function getProfileById(userId: string) {
 
     if (error) throw error;
     return profile;
+}
+
+export async function logoutAction() {
+    const cookieStore = await cookies();
+    cookieStore.delete(SESSION_COOKIE_NAME);
+    return { success: true };
+}
+
+/**
+ * Vérifie la session sur le serveur et retourne l'utilisateur.
+ * À utiliser au début de chaque action sensible.
+ */
+export async function verifyServerSession(requiredRole?: 'admin' | 'user') {
+    const cookieStore = await cookies();
+    const session = cookieStore.get(SESSION_COOKIE_NAME);
+
+    if (!session?.value) return null;
+
+    try {
+        const user = JSON.parse(session.value);
+        if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
+            return null;
+        }
+        return user;
+    } catch {
+        return null;
+    }
 }

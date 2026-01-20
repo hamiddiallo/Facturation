@@ -1,6 +1,6 @@
 'use client';
 
-import { verifyCredentials } from './adminActions';
+import { verifyCredentials, logoutAction } from './adminActions';
 
 export interface UserProfile {
     id: string;
@@ -32,7 +32,8 @@ export const authService = {
     },
 
     // Déconnexion
-    logout() {
+    async logout() {
+        await logoutAction(); // Supprime le cookie côté serveur
         localStorage.removeItem(SESSION_KEY);
         window.location.href = '/login';
     },

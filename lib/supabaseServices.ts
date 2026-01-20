@@ -68,6 +68,7 @@ export const getCompanies = async (): Promise<Company[]> => {
     const { data, error } = await supabase
         .from('companies')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
     if (error) {
@@ -166,10 +167,14 @@ export const updateCompany = async (id: string, company: Partial<Company>): Prom
     if (clean.templateId !== undefined) updates.template_id = clean.templateId;
     if (clean.markupPercentage !== undefined) updates.markup_percentage = clean.markupPercentage;
 
+    const user = authService.getCurrentUser();
+    if (!user) return null;
+
     const { data, error } = await supabase
         .from('companies')
         .update(updates)
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -199,10 +204,14 @@ export const setDefaultCompany = async (companyId: string): Promise<boolean> => 
 };
 
 export const deleteCompany = async (id: string): Promise<boolean> => {
+    const user = authService.getCurrentUser();
+    if (!user) return false;
+
     const { error } = await supabase
         .from('companies')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
     if (error) {
         console.error('Erreur deleteCompany:', error);
@@ -325,6 +334,9 @@ export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, 
 };
 
 export const getInvoicesCloud = async (): Promise<any[]> => {
+    const user = authService.getCurrentUser();
+    if (!user) return [];
+
     const { data, error } = await supabase
         .from('invoices')
         .select(`
@@ -332,6 +344,7 @@ export const getInvoicesCloud = async (): Promise<any[]> => {
             companies (display_name),
             invoice_items (*)
         `)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -369,10 +382,14 @@ export const getNextSequenceCloud = async (): Promise<number> => {
 };
 
 export const deleteInvoiceCloud = async (id: string): Promise<boolean> => {
+    const user = authService.getCurrentUser();
+    if (!user) return false;
+
     const { error } = await supabase
         .from('invoices')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
     if (error) {
         console.error('Erreur deleteInvoiceCloud:', error);

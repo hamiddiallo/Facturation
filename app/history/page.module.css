@@ -245,3 +245,6 @@
         border-radius: 12px;
     }
 }
+.tableSkeleton {
+    margin-bottom: 0.75rem;
+}
