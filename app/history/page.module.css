@@ -248,3 +248,39 @@
 .tableSkeleton {
     margin-bottom: 0.75rem;
 }
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 2rem;
+    padding: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.pageBtn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #cbd5e0;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.pageBtn:hover:not(:disabled) {
+    background: #f7fafc;
+    border-color: #a0aec0;
+}
+
+.pageBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pageIndicator {
+    font-size: 0.9rem;
+    color: #4a5568;
+    font-weight: 500;
+}

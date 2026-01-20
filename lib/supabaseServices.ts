@@ -333,9 +333,12 @@ export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, 
     }
 };
 
-export const getInvoicesCloud = async (): Promise<any[]> => {
+export const getInvoicesCloud = async (page: number = 0, pageSize: number = 20): Promise<any[]> => {
     const user = authService.getCurrentUser();
     if (!user) return [];
+
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
 
     const { data, error } = await supabase
         .from('invoices')
@@ -345,7 +348,8 @@ export const getInvoicesCloud = async (): Promise<any[]> => {
             invoice_items (*)
         `)
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
     if (error) {
         console.error('Erreur getInvoicesCloud:', error);

@@ -16,8 +16,11 @@ type DateMode = 'any' | 'exact' | 'interval';
 export default function HistoryPage() {
     const router = useRouter();
 
-    // SWR Data Fetching
-    const { data: invoices = [], isLoading: isLoadingInvoices, mutate } = useSWR('invoices', getInvoicesCloud);
+    const [currentPage, setCurrentPage] = useState(0);
+    const pageSize = 20;
+
+    // SWR Data Fetching - Key includes page to trigger re-fetch
+    const { data: invoices = [], isLoading: isLoadingInvoices, mutate } = useSWR(['invoices', currentPage], () => getInvoicesCloud(currentPage, pageSize));
 
     const [internalLoading, setInternalLoading] = useState(false);
     const loading = isLoadingInvoices || internalLoading;
@@ -253,12 +256,12 @@ export default function HistoryPage() {
                                                     <button
                                                         className={styles.actionBtn}
                                                         onClick={() => handleLoadToForm(inv, '/preview')}
-                                                        title="Ré-imprimer"
+                                                        title="Voir PDF"
                                                     >
-                                                        👁️
+                                                        📄
                                                     </button>
                                                     <button
-                                                        className={`${styles.actionBtn} ${styles.danger}`}
+                                                        className={`${styles.actionBtn} ${styles.deleteBtn}`}
                                                         onClick={() => handleDelete(inv.id)}
                                                         title="Supprimer"
                                                     >
@@ -270,6 +273,24 @@ export default function HistoryPage() {
                                     </tbody>
                                 </table>
                             )}
+
+                            <div className={styles.pagination}>
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                                    disabled={currentPage === 0 || loading}
+                                    className={styles.pageBtn}
+                                >
+                                    ← Précédente
+                                </button>
+                                <span className={styles.pageIndicator}>Page {currentPage + 1}</span>
+                                <button
+                                    onClick={() => setCurrentPage(p => p + 1)}
+                                    disabled={invoices.length < pageSize || loading}
+                                    className={styles.pageBtn}
+                                >
+                                    Suivante →
+                                </button>
+                            </div>
                         </>
                     )}
                 </div>
