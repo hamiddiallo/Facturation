@@ -63,7 +63,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (loading && pathname !== '/login') {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f7fafc' }}>
-                <p>Chargement de votre espace sécurisé (Profiles-Only)...</p>
+                <p>Chargement de votre espace de travail...</p>
             </div>
         );
     }

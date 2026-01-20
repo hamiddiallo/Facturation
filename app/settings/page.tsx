@@ -96,12 +96,24 @@ export default function SettingsPage() {
         if (!editingCompany) return;
         const { name, value } = e.target;
 
-        // Convert markupPercentage to number
+        let updates: any = { [name]: value };
+
+        // Auto-generate unique ID from Display Name (only for NEW companies)
+        if (name === 'displayName' && !editingCompany.id) {
+            const slug = value.toLowerCase()
+                .trim()
+                .normalize('NFD') // Supprime les accents
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]/g, '_') // Remplace spécial par _
+                .replace(/_+/g, '_') // Évite les doubles __
+                .replace(/^_|_$/g, ''); // Nettoie début/fin
+            updates.name = slug;
+        }
+
         if (name === 'markupPercentage') {
-            const numValue = value === '' ? 0 : parseFloat(value);
-            setEditingCompany({ ...editingCompany, [name]: numValue });
+            setEditingCompany({ ...editingCompany, ...updates, [name]: value });
         } else {
-            setEditingCompany({ ...editingCompany, [name]: value });
+            setEditingCompany({ ...editingCompany, ...updates });
         }
     };
 
@@ -341,6 +353,7 @@ export default function SettingsPage() {
                 </header>
 
                 <div className={styles.content}>
+                    <p style={{ fontSize: '0.8rem', color: '#718096', marginBottom: '1rem' }}>Les champs marqués d'un astérisque (*) sont obligatoires.</p>
                     <div className={styles.mainTabs}>
                         <button
                             className={`${styles.mainTabButton} ${mainTab === 'companies' ? styles.mainTabActive : ''}`}
@@ -433,7 +446,7 @@ export default function SettingsPage() {
                                     <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Nouveau Collaborateur</h3>
                                     <form className={styles.userFormGrid} onSubmit={handleCreateUser}>
                                         <div className={styles.formGroup}>
-                                            <label>Nom Complet</label>
+                                            <label>Nom Complet *</label>
                                             <input
                                                 className={styles.input}
                                                 value={newUser.fullName}
@@ -442,7 +455,7 @@ export default function SettingsPage() {
                                             />
                                         </div>
                                         <div className={styles.formGroup}>
-                                            <label>Email</label>
+                                            <label>Email *</label>
                                             <input
                                                 className={styles.input}
                                                 type="email"
@@ -452,7 +465,7 @@ export default function SettingsPage() {
                                             />
                                         </div>
                                         <div className={styles.formGroup}>
-                                            <label>Mot de passe</label>
+                                            <label>Mot de passe *</label>
                                             <input
                                                 className={styles.input}
                                                 type="password"
@@ -556,20 +569,7 @@ export default function SettingsPage() {
                             <div className={styles.form}>
                                 <div className={styles.responsiveRow}>
                                     <div className={styles.formGroup}>
-                                        <label>Identifiant Unique (ex: thiernodjo)</label>
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            value={editingCompany.name}
-                                            onChange={handleModalInputChange}
-                                            className={styles.input}
-                                            placeholder="ex: ma_boutique"
-                                            disabled={!!editingCompany.id} // Disable editing for existing companies to avoid broken links
-                                        />
-                                        <small style={{ fontSize: '0.7rem', color: '#718096' }}>Sert d'identifiant dans l'URL et la base de données.</small>
-                                    </div>
-                                    <div className={styles.formGroup}>
-                                        <label>Nom d'affichage</label>
+                                        <label>Nom d'affichage *</label>
                                         <input
                                             type="text"
                                             name="displayName"
@@ -577,10 +577,12 @@ export default function SettingsPage() {
                                             onChange={handleModalInputChange}
                                             className={styles.input}
                                             placeholder="Ex: Mon Entreprise SARL"
+                                            autoFocus={!editingCompany.id}
+                                            required
                                         />
                                     </div>
                                     <div className={styles.formGroup}>
-                                        <label>Activité</label>
+                                        <label>Activité *</label>
                                         <input
                                             type="text"
                                             name="businessType"
@@ -588,18 +590,20 @@ export default function SettingsPage() {
                                             onChange={handleModalInputChange}
                                             className={styles.input}
                                             placeholder="Ex: Commerce"
+                                            required
                                         />
                                     </div>
                                 </div>
 
                                 <div className={styles.formGroup}>
-                                    <label>Adresse complète</label>
+                                    <label>Adresse complète *</label>
                                     <textarea
                                         name="address"
                                         value={editingCompany.address}
                                         onChange={handleModalInputChange}
                                         className={`${styles.input} ${styles.textarea}`}
                                         placeholder="Sise au quartier..."
+                                        required
                                     />
                                 </div>
 
@@ -615,13 +619,14 @@ export default function SettingsPage() {
                                         />
                                     </div>
                                     <div className={styles.formGroup}>
-                                        <label>Téléphone</label>
+                                        <label>Téléphone *</label>
                                         <input
                                             type="text"
                                             name="phone"
                                             value={editingCompany.phone}
                                             onChange={handleModalInputChange}
                                             className={styles.input}
+                                            required
                                         />
                                     </div>
                                 </div>
@@ -632,7 +637,7 @@ export default function SettingsPage() {
                                         <input
                                             type="number"
                                             name="markupPercentage"
-                                            value={editingCompany.markupPercentage || 0}
+                                            value={editingCompany.markupPercentage}
                                             onChange={handleModalInputChange}
                                             className={styles.input}
                                             min="0"
