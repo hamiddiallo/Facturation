@@ -15,6 +15,8 @@ import {
 import { adminCreateUser, adminDeleteUser, adminListUsers, adminUpdateProfile, uploadAvatarAction } from '@/lib/adminActions';
 import { useAuth } from '@/components/AuthProvider';
 import PasswordStrength from '@/components/PasswordStrength';
+import { toast } from 'sonner';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import styles from './page.module.css';
 
 type MainTab = 'companies' | 'users';
@@ -52,6 +54,10 @@ export default function SettingsPage() {
     const [isNewUserPasswordValid, setIsNewUserPasswordValid] = useState(false);
     const [isEditingUserPasswordValid, setIsEditingUserPasswordValid] = useState(true);
 
+    // Confirmation Modals State
+    const [companyToDelete, setCompanyToDelete] = useState<string | null>(null);
+    const [userToDelete, setUserToDelete] = useState<string | null>(null);
+
     useEffect(() => {
         if (!authLoading && profile) {
             // Protection admin-only pour la page settings
@@ -75,7 +81,8 @@ export default function SettingsPage() {
             phone: '',
             email: '',
             isDefault: false,
-            templateId: 'template_standard'
+            templateId: 'template_standard',
+            markupPercentage: 0
         });
         setIsModalOpen(true);
     };
@@ -88,7 +95,14 @@ export default function SettingsPage() {
     const handleModalInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (!editingCompany) return;
         const { name, value } = e.target;
-        setEditingCompany({ ...editingCompany, [name]: value });
+
+        // Convert markupPercentage to number
+        if (name === 'markupPercentage') {
+            const numValue = value === '' ? 0 : parseFloat(value);
+            setEditingCompany({ ...editingCompany, [name]: numValue });
+        } else {
+            setEditingCompany({ ...editingCompany, [name]: value });
+        }
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,7 +128,9 @@ export default function SettingsPage() {
         } catch (error) {
             console.error('Erreur compression image:', error);
             setInternalLoading(false);
-            setStatus('Erreur lors de la compression de l\'image.', true);
+            toast.error('Erreur de compression', {
+                description: 'Impossible de compresser l\'image sélectionnée.'
+            });
         }
     };
 
@@ -123,32 +139,45 @@ export default function SettingsPage() {
         setInternalLoading(true);
 
         try {
+            // Ensure markupPercentage is a number
+            const companyData = {
+                ...editingCompany,
+                markupPercentage: typeof editingCompany.markupPercentage === 'string'
+                    ? parseFloat(editingCompany.markupPercentage) || 0
+                    : editingCompany.markupPercentage || 0
+            };
+
             if (editingCompany.id) {
                 // Update
-                const updated = await updateCompanyCloud(editingCompany.id, editingCompany);
-                if (updated) setStatus('Entreprise mise à jour !');
+                const updated = await updateCompanyCloud(editingCompany.id, companyData);
+                if (updated) toast.success('Entreprise mise à jour !');
             } else {
                 // Create
-                const created = await createCompanyCloud(editingCompany);
-                if (created) setStatus('Nouvelle entreprise ajoutée !');
+                const created = await createCompanyCloud(companyData);
+                if (created) toast.success('Nouvelle entreprise ajoutée !');
             }
             mutate('companies');
             setIsModalOpen(false);
         } catch (err) {
-            setStatus('Erreur lors de la sauvegarde.', true);
+            toast.error('Erreur de sauvegarde');
         } finally {
             setInternalLoading(false);
         }
     };
 
-    const handleDeleteCompany = async (id: string) => {
-        if (!confirm('Supprimer cette entreprise définitivement ?')) return;
+    const handleDeleteCompany = (id: string) => {
+        setCompanyToDelete(id);
+    };
+
+    const confirmDeleteCompany = async () => {
+        if (!companyToDelete) return;
         setInternalLoading(true);
-        const success = await deleteCompanyCloud(id);
+        const success = await deleteCompanyCloud(companyToDelete);
         if (success) {
-            setStatus('Entreprise supprimée.');
+            toast.success('Entreprise supprimée.');
             mutate('companies');
         }
+        setCompanyToDelete(null);
         setInternalLoading(false);
     };
 
@@ -156,7 +185,7 @@ export default function SettingsPage() {
         setInternalLoading(true);
         const success = await setDefaultCompanyCloud(id);
         if (success) {
-            setStatus('Entreprise par défaut mise à jour !');
+            toast.success('Entreprise par défaut mise à jour !');
             mutate('companies');
         }
         setInternalLoading(false);
@@ -166,36 +195,43 @@ export default function SettingsPage() {
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isNewUserPasswordValid) {
-            setStatus('Le mot de passe ne respecte pas les critères.', true);
+            toast.warning('Mot de passe invalide', {
+                description: 'Le mot de passe ne respecte pas les critères.'
+            });
             return;
         }
         setInternalLoading(true);
         try {
             const res = await adminCreateUser(newUser.email, newUser.password, newUser.fullName, newUser.role);
             if (!res.success) {
-                setStatus('Erreur: ' + res.error, true);
+                toast.error('Erreur', { description: res.error });
                 return;
             }
             setNewUser({ email: '', password: '', fullName: '', role: 'user' });
             mutate('users');
-            setStatus('Utilisateur créé avec succès !');
+            toast.success('Utilisateur créé avec succès !');
         } catch (err: any) {
-            setStatus('Erreur: ' + err.message, true);
+            toast.error('Erreur', { description: err.message });
         } finally {
             setInternalLoading(false);
         }
     };
 
-    const handleDeleteUser = async (id: string) => {
-        if (!confirm('Révoquer cet utilisateur ?')) return;
+    const handleDeleteUser = (id: string) => {
+        setUserToDelete(id);
+    };
+
+    const confirmDeleteUser = async () => {
+        if (!userToDelete) return;
         setInternalLoading(true);
         try {
-            await adminDeleteUser(id);
+            await adminDeleteUser(userToDelete);
             mutate('users');
-            setStatus('Utilisateur révoqué.');
+            toast.success('Utilisateur révoqué.');
         } catch (err: any) {
-            setStatus('Erreur: ' + err.message, true);
+            toast.error('Erreur', { description: err.message });
         } finally {
+            setUserToDelete(null);
             setInternalLoading(false);
         }
     };
@@ -235,11 +271,11 @@ export default function SettingsPage() {
 
             if (result?.success && result.publicUrl) {
                 setEditingUser({ ...editingUser, avatar_url: result.publicUrl });
-                setStatus('Photo préparée (enregistrez pour confirmer)');
+                toast.info('Photo préparée', { description: 'Enregistrez pour confirmer le changement.' });
             }
         } catch (error) {
             console.error('Erreur upload avatar:', error);
-            setStatus('Erreur lors de l\'envoi de la photo.', true);
+            toast.error('Erreur de photo', { description: 'Erreur lors de l\'envoi de la photo.' });
         } finally {
             setInternalLoading(false);
         }
@@ -250,7 +286,9 @@ export default function SettingsPage() {
         if (!editingUser) return;
 
         if (editingUser.password && !isEditingUserPasswordValid) {
-            setStatus('Le nouveau mot de passe ne respecte pas les critères.', true);
+            toast.warning('Mot de passe invalide', {
+                description: 'Le nouveau mot de passe ne respecte pas les critères.'
+            });
             return;
         }
 
@@ -266,16 +304,16 @@ export default function SettingsPage() {
             });
 
             if (!res.success) {
-                setStatus('Erreur: ' + res.error, true);
+                toast.error('Erreur', { description: res.error });
                 return;
             }
 
             setIsUserModalOpen(false);
             setEditingUser(null);
             mutate('users');
-            setStatus('Utilisateur modifié avec succès !');
+            toast.success('Utilisateur modifié avec succès !');
         } catch (err: any) {
-            setStatus('Erreur: ' + err.message, true);
+            toast.error('Erreur', { description: err.message });
         } finally {
             setInternalLoading(false);
         }
@@ -284,8 +322,8 @@ export default function SettingsPage() {
 
 
     const setStatus = (msg: string, isError = false) => {
-        setSaveStatus({ msg, isError });
-        setTimeout(() => setSaveStatus(null), 3000);
+        if (isError) toast.error(msg);
+        else toast.success(msg);
     };
 
     if (authLoading || (loading && companies.length === 0 && mainTab === 'companies')) {
@@ -321,11 +359,7 @@ export default function SettingsPage() {
                     </div>
 
                     <div className={styles.tabContent}>
-                        {saveStatus && (
-                            <div className={`${styles.notif} ${saveStatus.isError ? styles.error : styles.success}`}>
-                                {saveStatus.msg}
-                            </div>
-                        )}
+                        {/* Status notification area removed in favor of Sonner Toasts */}
 
                         {/* ONGLET ENTREPRISES (VUE TABLEAU) */}
                         {mainTab === 'companies' && (
@@ -522,6 +556,19 @@ export default function SettingsPage() {
                             <div className={styles.form}>
                                 <div className={styles.responsiveRow}>
                                     <div className={styles.formGroup}>
+                                        <label>Identifiant Unique (ex: thiernodjo)</label>
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            value={editingCompany.name}
+                                            onChange={handleModalInputChange}
+                                            className={styles.input}
+                                            placeholder="ex: ma_boutique"
+                                            disabled={!!editingCompany.id} // Disable editing for existing companies to avoid broken links
+                                        />
+                                        <small style={{ fontSize: '0.7rem', color: '#718096' }}>Sert d'identifiant dans l'URL et la base de données.</small>
+                                    </div>
+                                    <div className={styles.formGroup}>
                                         <label>Nom d'affichage</label>
                                         <input
                                             type="text"
@@ -579,6 +626,26 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
 
+                                <div className={styles.responsiveRow}>
+                                    <div className={styles.formGroup}>
+                                        <label>Majoration (%)</label>
+                                        <input
+                                            type="number"
+                                            name="markupPercentage"
+                                            value={editingCompany.markupPercentage || 0}
+                                            onChange={handleModalInputChange}
+                                            className={styles.input}
+                                            min="0"
+                                            max="100"
+                                            step="0.1"
+                                            placeholder="0"
+                                        />
+                                        <small style={{ color: '#718096', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                                            Pourcentage de majoration appliqué aux prix (arrondi au multiple de 500 le plus proche)
+                                        </small>
+                                    </div>
+                                </div>
+
                                 <div className={styles.formGroup}>
                                     <label>Modèle de design de facture</label>
                                     <div className={styles.templateGrid}>
@@ -602,6 +669,13 @@ export default function SettingsPage() {
                                         >
                                             <img src="/templates/template_classic.png" alt="Classic" className={styles.templatePreview} />
                                             <span className={styles.templateLabel}>Modèle 3</span>
+                                        </div>
+                                        <div
+                                            className={`${styles.templateOption} ${editingCompany.templateId === 'template_moderne_blue' ? styles.templateOptionSelected : ''}`}
+                                            onClick={() => setEditingCompany({ ...editingCompany, templateId: 'template_moderne_blue' })}
+                                        >
+                                            <img src="/templates/template_moderne_blue.png" alt="Moderne Blue" className={styles.templatePreview} />
+                                            <span className={styles.templateLabel}>Modèle 4</span>
                                         </div>
                                     </div>
                                 </div>
@@ -741,6 +815,28 @@ export default function SettingsPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmationDialog
+                isOpen={!!companyToDelete}
+                onClose={() => setCompanyToDelete(null)}
+                onConfirm={confirmDeleteCompany}
+                title="Supprimer l'entreprise"
+                message="Voulez-vous vraiment supprimer cette entreprise ? Toutes les données associées seront perdues."
+                confirmLabel="Oui, supprimer"
+                cancelLabel="Annuler"
+                type="danger"
+            />
+
+            <ConfirmationDialog
+                isOpen={!!userToDelete}
+                onClose={() => setUserToDelete(null)}
+                onConfirm={confirmDeleteUser}
+                title="Révoquer l'utilisateur"
+                message="Voulez-vous vraiment révoquer l'accès de cet utilisateur ? Il ne pourra plus se connecter."
+                confirmLabel="Oui, révoquer"
+                cancelLabel="Annuler"
+                type="danger"
+            />
         </div>
     );
 }

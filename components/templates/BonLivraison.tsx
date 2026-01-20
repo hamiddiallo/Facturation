@@ -1,4 +1,6 @@
 import { InvoiceData } from '@/lib/types';
+import { calculateAdjustedPrice } from '@/lib/priceCalculations';
+import { getInvoiceTitle } from '@/lib/textUtils';
 import styles from './BonLivraison.module.css';
 
 interface BonLivraisonProps {
@@ -34,7 +36,7 @@ export default function BonLivraison({ data }: BonLivraisonProps) {
                     {/* BL Info */}
                     <div className={styles.invoiceInfoBar}>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <span className={styles.factureTitle}>BON DE LIVRAISON Nº</span>
+                            <span className={styles.factureTitle}>{getInvoiceTitle(data.type)} Nº</span>
                             <span className={styles.factureTitle} style={{ color: '#ff3333' }}>
                                 {data.numeroFacture}
                             </span>

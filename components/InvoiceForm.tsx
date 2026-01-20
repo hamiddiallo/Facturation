@@ -8,6 +8,8 @@ import { saveInvoiceData, getInvoiceData, clearInvoiceData } from '@/lib/storage
 import { useAuth } from './AuthProvider';
 import { getCompanies, saveInvoiceCloud } from '@/lib/supabaseServices';
 import { getNextSequenceNumber, formatBaseInvoiceNumber } from '@/lib/counter';
+import { toast } from 'sonner';
+import ConfirmationDialog from './ConfirmationDialog';
 import ArticleList from './ArticleList';
 import styles from './InvoiceForm.module.css';
 
@@ -30,6 +32,7 @@ export default function InvoiceForm() {
     ]);
     const [amountPaid, setAmountPaid] = useState<number | string>(0);
     const [invoiceType, setInvoiceType] = useState<InvoiceType>(InvoiceType.PROFORMA);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
 
     // Initial sequence
     useEffect(() => {
@@ -62,16 +65,19 @@ export default function InvoiceForm() {
     }, [companies, selectedCompany]);
 
     const handleClearData = () => {
-        if (confirm('Effacer toutes les données ?')) {
-            clearInvoiceData();
-            setClientNom('');
-            setClientAdresse('');
-            setArticles([{ designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false }]);
-            setAmountPaid('');
-            setInvoiceType(InvoiceType.PROFORMA);
-            const seq = getNextSequenceNumber();
-            setInvoiceNumber(formatBaseInvoiceNumber(seq));
-        }
+        setShowResetConfirm(true);
+    };
+
+    const confirmClearData = () => {
+        clearInvoiceData();
+        setClientNom('');
+        setClientAdresse('');
+        setArticles([{ designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false }]);
+        setAmountPaid('');
+        setInvoiceType(InvoiceType.PROFORMA);
+        const seq = getNextSequenceNumber();
+        setInvoiceNumber(formatBaseInvoiceNumber(seq));
+        toast.success('Formulaire réinitialisé avec succès');
     };
 
     const handleUpdateAllArticles = useCallback((updatedArticles: Article[]) => {
@@ -79,8 +85,14 @@ export default function InvoiceForm() {
     }, []);
 
     const onAddArticle = useCallback(() => {
+        if (articles.length >= 20) {
+            toast.warning("Limite de 20 articles atteinte", {
+                description: "Pour garantir un affichage optimal sur une seule page A4, vous ne pouvez pas ajouter plus d'articles."
+            });
+            return;
+        }
         setArticles(prev => [...prev, { designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false }]);
-    }, []);
+    }, [articles.length]);
 
     const onRemoveArticle = useCallback((idx: number) => {
         setArticles(prev => prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev);
@@ -99,7 +111,9 @@ export default function InvoiceForm() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedCompany) {
-            alert("Veuillez configurer au moins une entreprise dans les paramètres.");
+            toast.error("Entreprise manquante", {
+                description: "Veuillez configurer au moins une entreprise dans les paramètres."
+            });
             return;
         }
 
@@ -218,6 +232,17 @@ export default function InvoiceForm() {
                     Finaliser et Prévisualiser →
                 </button>
             </div>
+
+            <ConfirmationDialog
+                isOpen={showResetConfirm}
+                onClose={() => setShowResetConfirm(false)}
+                onConfirm={confirmClearData}
+                title="Réinitialiser le formulaire"
+                message="Êtes-vous sûr de vouloir effacer toutes les données saisies ? Cette action est irréversible."
+                confirmLabel="Oui, effacer"
+                cancelLabel="Annuler"
+                type="danger"
+            />
         </form>
     );
 }

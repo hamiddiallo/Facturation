@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS public.companies (
     seal_image TEXT,
     is_default BOOLEAN DEFAULT FALSE,
     template_id TEXT DEFAULT 'template_standard',
+    markup_percentage NUMERIC DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
@@ -120,9 +121,9 @@ BEGIN
         VALUES (v_user_id, 'MOUCTAR & FRÈRES', 'MOUCTAR & FRÈRES', 'Commerce Generale', 'sise au grand marché centrale de labe', '(+224) 620 037 778', 'mouctardh45@gmail.com')
         ON CONFLICT DO NOTHING;
 
-        -- 3. LES BOUTIQUES THIERNODJO & FRERE
-        INSERT INTO public.companies (user_id, name, display_name, business_type, address, phone, email)
-        VALUES (v_user_id, 'LES BOUTIQUES THIERNODJO & FRERE', 'LES BOUTIQUES THIERNODJO & FRERE', 'Commerce Generale', 'sise au grand marché centrale de labé', '622 227 115 / 626 121 245', '')
+        -- 3. LES BOUTIQUES THIERNODJO & FRERE (avec majoration 15%)
+        INSERT INTO public.companies (user_id, name, display_name, business_type, address, phone, email, markup_percentage)
+        VALUES (v_user_id, 'LES BOUTIQUES THIERNODJO & FRERE', 'LES BOUTIQUES THIERNODJO & FRERE', 'Commerce Generale', 'sise au grand marché centrale de labé', '622 227 115 / 626 121 245', '', 15)
         ON CONFLICT DO NOTHING;
     END IF;
 END $$;

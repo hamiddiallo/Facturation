@@ -1,6 +1,7 @@
 import { InvoiceData } from '@/lib/types';
 import { numberToWords } from '@/lib/numberToWords';
 import { calculateAdjustedPrice } from '@/lib/priceCalculations';
+import { getInvoiceTitle } from '@/lib/textUtils';
 import styles from './FactureProforma.module.css';
 
 interface FactureProformaProps {
@@ -14,7 +15,7 @@ export default function FactureProforma({ data, showDelivered = true }: FactureP
     const isClassic = company.templateId === 'template_classic';
 
     const totalAmount = data.articles.reduce((sum, article) => {
-        const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.id);
+        const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.markupPercentage || 0);
         return sum + (adjustedPrice * article.quantity);
     }, 0);
 
@@ -44,7 +45,7 @@ export default function FactureProforma({ data, showDelivered = true }: FactureP
                     {/* Invoice Info */}
                     <div className={styles.invoiceInfoBar}>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <span className={styles.factureTitle}>PROFORMA Nº</span>
+                            <span className={styles.factureTitle}>{getInvoiceTitle(data.type)} Nº</span>
                             <span className={styles.factureTitle} style={{ color: '#ff3333' }}>
                                 {data.numeroFacture}
                             </span>
@@ -76,7 +77,7 @@ export default function FactureProforma({ data, showDelivered = true }: FactureP
                         </thead>
                         <tbody>
                             {data.articles.map((article, index) => {
-                                const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.id);
+                                const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.markupPercentage || 0);
                                 const adjustedTotal = adjustedPrice * article.quantity;
                                 return (
                                     <tr key={index}>
@@ -173,7 +174,7 @@ export default function FactureProforma({ data, showDelivered = true }: FactureP
                         </thead>
                         <tbody>
                             {data.articles.map((article, index) => {
-                                const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.id);
+                                const adjustedPrice = calculateAdjustedPrice(article.price, data.selectedCompany.markupPercentage || 0);
                                 const adjustedTotal = adjustedPrice * article.quantity;
                                 return (
                                     <tr key={index}>

@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 import AuthProvider from "@/components/AuthProvider";
 import MainLayout from "@/components/MainLayout";
 import SWRConfigContext from "@/components/SWRConfigContext";
+import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -31,7 +32,10 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
           <SWRConfigContext>
-            <MainLayout>{children}</MainLayout>
+            <MainLayout>
+              {children}
+              <Toaster position="top-right" richColors closeButton />
+            </MainLayout>
           </SWRConfigContext>
         </AuthProvider>
       </body>

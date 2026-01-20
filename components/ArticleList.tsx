@@ -51,8 +51,13 @@ const ArticleList = memo(({
         <div className={styles.container}>
             <div className={styles.header}>
                 <h3 className={styles.title}>Articles</h3>
-                <button type="button" onClick={onAddArticle} className={styles.addButton}>
-                    + Ajouter un article
+                <button
+                    type="button"
+                    onClick={onAddArticle}
+                    className={`${styles.addButton} ${articles.length >= 20 ? styles.limitReached : ''}`}
+                    title={articles.length >= 20 ? "Cliquez pour plus d'infos sur la limite" : "Ajouter un article"}
+                >
+                    + Ajouter un article {articles.length >= 20 && "(Limite atteinte)"}
                 </button>
             </div>
 

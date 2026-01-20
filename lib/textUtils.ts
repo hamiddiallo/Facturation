@@ -25,3 +25,14 @@ export function normalizeEmail(email: string): string {
     if (!email) return '';
     return email.trim().toLowerCase();
 }
+/**
+ * Retourne le titre de la facture en fonction de son type.
+ */
+export function getInvoiceTitle(type: string | undefined): string {
+    switch (type) {
+        case 'proforma': return 'FACTURE PROFORMA';
+        case 'bon_livraison': return 'BON DE LIVRAISON';
+        case 'definitive': return 'FACTURE DÉFINITIVE';
+        default: return 'FACTURE';
+    }
+}

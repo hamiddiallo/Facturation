@@ -305,9 +305,14 @@
     background: #f8fafc;
 }
 
-/* Forms */
 .form {
     display: grid;
+    gap: 1.5rem;
+}
+
+.responsiveRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1.5rem;
 }
 

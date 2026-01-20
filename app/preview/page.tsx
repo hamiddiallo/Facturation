@@ -10,6 +10,8 @@ import FactureProforma from '@/components/templates/FactureProforma';
 import FactureDefinitive from '@/components/templates/FactureDefinitive';
 import BonLivraison from '@/components/templates/BonLivraison';
 import FactureSimple from '@/components/templates/FactureSimple';
+import FactureModerneBlue from '@/components/templates/FactureModerneBlue';
+import { toast } from 'sonner';
 import styles from './page.module.css';
 
 export default function PreviewPage() {
@@ -26,7 +28,9 @@ export default function PreviewPage() {
 
             const data = getInvoiceData();
             if (!data) {
-                alert('Aucune donnée de facture trouvée. Veuillez créer une facture.');
+                toast.error('Facture non trouvée', {
+                    description: 'Aucune donnée de facture trouvée. Veuillez créer une facture.'
+                });
                 router.push('/');
                 return;
             }
@@ -103,6 +107,7 @@ export default function PreviewPage() {
     const adaptedData: InvoiceData = {
         ...invoiceData,
         selectedCompany: selectedCompany,
+        type: selectedType,
         numeroFacture: adaptInvoiceNumber(invoiceData.numeroFacture, selectedCompany, selectedType)
     };
 
@@ -111,6 +116,7 @@ export default function PreviewPage() {
             case 'template_standard': return 'Modèle 1';
             case 'template_modern': return 'Modèle 2';
             case 'template_classic': return 'Modèle 3';
+            case 'template_moderne_blue': return 'Modèle 4';
             default: return 'Modèle 1';
         }
     };
@@ -279,7 +285,9 @@ export default function PreviewPage() {
                             return;
                         }
                         console.error('Error sharing/downloading:', err);
-                        alert('Erreur lors du partage/téléchargement. Veuillez réessayer.');
+                        toast.error('Échec de l\'opération', {
+                            description: 'Erreur lors du partage ou du téléchargement du PDF. Veuillez réessayer.'
+                        });
                     } finally {
                         // Restore original styles
                         element.style.transform = originalTransform;
@@ -306,10 +314,40 @@ export default function PreviewPage() {
                         marginLeft: scale < 1 ? `${(window.innerWidth - (210 * 3.78 * scale)) / 2}px` : '0'
                     }}
                 >
-                    {selectedType === InvoiceType.PROFORMA && <FactureProforma data={adaptedData} showDelivered={showDelivered} />}
-                    {selectedType === InvoiceType.DEFINITIVE && <FactureDefinitive data={adaptedData} showDelivered={showDelivered} />}
-                    {selectedType === InvoiceType.BON_LIVRAISON && <BonLivraison data={adaptedData} />}
-                    {selectedType === InvoiceType.SIMPLE && <FactureSimple data={adaptedData} showDelivered={showDelivered} />}
+                    {/* Render based on template ID */}
+                    {selectedCompany.templateId === 'template_moderne_blue' && <FactureModerneBlue data={adaptedData} showDelivered={showDelivered} />}
+                    {selectedCompany.templateId === 'template_standard' && (
+                        <>
+                            {selectedType === InvoiceType.PROFORMA && <FactureProforma data={adaptedData} showDelivered={showDelivered} />}
+                            {selectedType === InvoiceType.DEFINITIVE && <FactureDefinitive data={adaptedData} showDelivered={showDelivered} />}
+                            {selectedType === InvoiceType.BON_LIVRAISON && <BonLivraison data={adaptedData} />}
+                            {selectedType === InvoiceType.SIMPLE && <FactureSimple data={adaptedData} showDelivered={showDelivered} />}
+                        </>
+                    )}
+                    {selectedCompany.templateId === 'template_modern' && (
+                        <>
+                            {selectedType === InvoiceType.PROFORMA && <FactureProforma data={adaptedData} showDelivered={showDelivered} />}
+                            {selectedType === InvoiceType.DEFINITIVE && <FactureDefinitive data={adaptedData} showDelivered={showDelivered} />}
+                            {selectedType === InvoiceType.BON_LIVRAISON && <BonLivraison data={adaptedData} />}
+                            {selectedType === InvoiceType.SIMPLE && <FactureSimple data={adaptedData} showDelivered={showDelivered} />}
+                        </>
+                    )}
+                    {selectedCompany.templateId === 'template_classic' && (
+                        <>
+                            {selectedType === InvoiceType.PROFORMA && <FactureProforma data={adaptedData} showDelivered={showDelivered} />}
+                            {selectedType === InvoiceType.DEFINITIVE && <FactureDefinitive data={adaptedData} showDelivered={showDelivered} />}
+                            {selectedType === InvoiceType.BON_LIVRAISON && <BonLivraison data={adaptedData} />}
+                            {selectedType === InvoiceType.SIMPLE && <FactureSimple data={adaptedData} showDelivered={showDelivered} />}
+                        </>
+                    )}
+                    {!selectedCompany.templateId && (
+                        <>
+                            {selectedType === InvoiceType.PROFORMA && <FactureProforma data={adaptedData} showDelivered={showDelivered} />}
+                            {selectedType === InvoiceType.DEFINITIVE && <FactureDefinitive data={adaptedData} showDelivered={showDelivered} />}
+                            {selectedType === InvoiceType.BON_LIVRAISON && <BonLivraison data={adaptedData} />}
+                            {selectedType === InvoiceType.SIMPLE && <FactureSimple data={adaptedData} showDelivered={showDelivered} />}
+                        </>
+                    )}
                 </div>
             </div>
         </div>

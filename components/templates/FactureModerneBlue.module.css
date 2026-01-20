@@ -1,0 +1,361 @@
+.container {
+    width: 210mm;
+    min-height: 297mm;
+    max-height: 297mm;
+    background: white;
+    padding: 5mm;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #1a202c;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Base print rule to ensure background colors are printed */
+@media all {
+    .container {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+@page {
+    margin: 0 !important;
+    size: A4;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 5px;
+    padding-bottom: 3px;
+}
+
+.companyInfo {
+    flex: 1;
+}
+
+.companyName {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1a202c;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.5px;
+}
+
+.companyDetails {
+    font-size: 11px;
+    color: #4a5568;
+    line-height: 1.6;
+}
+
+.companyDetails div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 0;
+}
+
+.invoiceTitle {
+    font-size: 28px;
+    font-weight: 800;
+    color: #4169E1;
+    letter-spacing: 2px;
+    text-align: right;
+}
+
+/* Invoice Meta */
+.invoiceMeta {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 5px;
+    padding: 4px 0;
+    border-top: 2px solid #E2E8F0;
+    border-bottom: 2px solid #E2E8F0;
+}
+
+.metaItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.metaLabel {
+    font-size: 9px;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.metaValue {
+    font-size: 15px;
+    color: #1a202c;
+    font-weight: 700;
+}
+
+/* Client Box */
+.clientBox {
+    background: #EBF4FF;
+    border: 1px solid #BEE3F8;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+}
+
+.clientInfoRow {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.clientAddressSeparator {
+    color: #4169E1;
+    font-weight: bold;
+}
+
+.clientLabel {
+    font-size: 10px;
+    color: #4169E1;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+.clientName {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a202c;
+}
+
+.clientAddress {
+    font-size: 15px;
+    color: #4a5568;
+    line-height: 1.2;
+}
+
+/* Table */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+
+.tableHeader {
+    background: #4169E1;
+    color: white;
+}
+
+.tableHeader th {
+    padding: 4px 6px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tableHeader th:first-child {
+    width: 40px;
+    text-align: center;
+}
+
+.tableHeader th:nth-child(2) {
+    width: 50px;
+    text-align: center;
+}
+
+.tableHeader th:last-child {
+    text-align: right;
+}
+
+.tableRow {
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.tableRow:hover {
+    background: #F7FAFC;
+}
+
+.tableRow td {
+    padding: 3px 6px;
+    font-size: 13px;
+    color: #2d3748;
+}
+
+.tableRow td:first-child {
+    text-align: center;
+    font-weight: 700;
+    color: #4169E1;
+}
+
+.tableRow td:nth-child(2) {
+    text-align: center;
+}
+
+.tableRow td:last-child {
+    text-align: right;
+    font-weight: 700;
+    color: #1a202c;
+}
+
+.deliveryStatus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #C6F6D5;
+    color: #22543D;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.deliveryStatusPending {
+    background: #FED7D7;
+    color: #742A2A;
+}
+
+/* Total Section */
+.totalSection {
+    display: flex;
+    justify-content: flex-end;
+    margin: 3px 0;
+}
+
+.totalBox {
+    background: #4169E1;
+    color: white;
+    padding: 8px 24px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(65, 105, 225, 0.3);
+}
+
+.totalLabel {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.totalAmount {
+    font-size: 28px;
+    font-weight: 800;
+}
+
+/* Amount in Words */
+.amountInWords {
+    font-size: 12px;
+    color: #4a5568;
+    font-style: italic;
+    margin-bottom: 10px;
+    padding: 6px;
+    background: #F7FAFC;
+    border-left: 3px solid #4169E1;
+}
+
+/* Signatures */
+.signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 25px;
+    padding-top: 5px;
+}
+
+.signatureBlock {
+    flex: 1;
+}
+
+.signatureBlock:first-child {
+    text-align: left;
+}
+
+.signatureBlock:last-child {
+    text-align: right;
+}
+
+.signatureBlock:last-child .signatureLine {
+    margin-left: auto;
+}
+
+.signatureBlock:first-child .signatureLine {
+    margin-left: 0;
+}
+
+.signatureLabel {
+    font-size: 11px;
+    color: #2d3748;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.signatureSpace {
+    min-height: 60px;
+    display: flex;
+    align-items: flex-end;
+}
+
+.signatureBlock:first-child .signatureSpace {
+    justify-content: flex-start;
+}
+
+.signatureBlock:last-child .signatureSpace {
+    justify-content: flex-end;
+}
+
+.signatureLine {
+    width: 150px;
+    border-top: 1px solid #CBD5E0;
+    margin-top: 4px;
+}
+
+/* Print Styles */
+@media print {
+    .container {
+        padding: 0 !important;
+        margin: 0 !important;
+        margin-top: -12.7mm !important;
+        /* Compensate browser default margin */
+        width: 100% !important;
+        max-width: none !important;
+        max-height: 297mm !important;
+        box-shadow: none !important;
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+        overflow: hidden !important;
+    }
+
+    .table {
+        page-break-inside: avoid !important;
+    }
+
+    .tableRow:hover {
+        background: transparent !important;
+    }
+
+    /* Force background colors in print */
+    .tableHeader {
+        background-color: #4169E1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .totalBox {
+        background-color: #4169E1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .clientBox {
+        background-color: #EBF4FF !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}

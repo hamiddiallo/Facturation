@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { getInvoicesCloud, deleteInvoiceCloud } from '@/lib/supabaseServices';
 import { saveInvoiceData } from '@/lib/storage';
 import { InvoiceType } from '@/lib/types';
+import { toast } from 'sonner';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import styles from './page.module.css';
 
 type DateMode = 'any' | 'exact' | 'interval';
@@ -25,6 +27,10 @@ export default function HistoryPage() {
     const [exactDate, setExactDate] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+
+    // Confirmation Modal States
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
 
 
     const handleLoadToForm = (inv: any, target: '/' | '/preview') => {
@@ -64,20 +70,31 @@ export default function HistoryPage() {
         router.push(target);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Supprimer cette facture définitivement ?')) return;
+    const handleDelete = (id: string) => {
+        setInvoiceToDelete(id);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!invoiceToDelete) return;
+
         setInternalLoading(true);
         try {
-            const success = await deleteInvoiceCloud(id);
+            const success = await deleteInvoiceCloud(invoiceToDelete);
             if (success) {
+                toast.success('Facture supprimée avec succès');
                 mutate();
             } else {
-                alert('Erreur lors de la suppression.');
+                toast.error('Erreur de suppression', {
+                    description: 'Impossible de supprimer la facture pour le moment.'
+                });
             }
         } catch (err) {
             console.error('Erreur suppression:', err);
+            toast.error('Une erreur est survenue lors de la suppression.');
         } finally {
             setInternalLoading(false);
+            setInvoiceToDelete(null);
         }
     };
 
@@ -252,6 +269,17 @@ export default function HistoryPage() {
                     )}
                 </div>
             </div>
+
+            <ConfirmationDialog
+                isOpen={isDeleteDialogOpen}
+                onClose={() => setIsDeleteDialogOpen(false)}
+                onConfirm={confirmDelete}
+                title="Supprimer la facture"
+                message="Voulez-vous vraiment supprimer cette facture définitivement ? Cette action est irréversible."
+                confirmLabel="Oui, supprimer"
+                cancelLabel="Annuler"
+                type="danger"
+            />
         </div>
     );
 }

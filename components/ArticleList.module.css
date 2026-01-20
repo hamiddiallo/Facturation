@@ -32,6 +32,16 @@
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
+.addButton.limitReached {
+    background: #718096;
+    box-shadow: none;
+}
+
+.addButton.limitReached:hover {
+    background: #4a5568;
+    transform: none;
+}
+
 .tableWrapper {
     overflow-x: auto;
     border-radius: 8px;

@@ -18,7 +18,8 @@ const mapCompany = (data: any): Company => ({
     registrationNumbers: data.registration_numbers,
     sealImage: data.seal_image,
     isDefault: data.is_default || false,
-    templateId: data.template_id || 'template_standard'
+    templateId: data.template_id || 'template_standard',
+    markupPercentage: data.markup_percentage || 0
 });
 
 // --- SCHEMAS DE VALIDATION ---
@@ -30,11 +31,12 @@ const CompanySchema = z.object({
     nif: z.string().nullable().optional(),
     phone: z.string().nullable().optional(),
     email: z.string().email().or(z.literal('')).nullable().optional(),
-    hasStyledLogo: z.boolean().optional(),
+    hasStyledLogo: z.boolean().nullable().optional(),
     registrationNumbers: z.string().nullable().optional(),
     sealImage: z.string().nullable().optional(),
     isDefault: z.boolean().optional(),
-    templateId: z.string().optional()
+    templateId: z.string().nullable().optional(),
+    markupPercentage: z.number().min(0).max(100).nullable().optional()
 });
 
 const ArticleSchema = z.object({
@@ -82,10 +84,10 @@ export const createCompany = async (company: Omit<Company, 'id'>): Promise<Compa
         ...company,
         name: normalizeText(company.name),
         displayName: normalizeText(company.displayName),
-        address: normalizeText(company.address || ''),
-        email: normalizeEmail(company.email || ''),
-        nif: normalizeText(company.nif || ''),
-        registrationNumbers: normalizeText(company.registrationNumbers || '')
+        address: company.address ? normalizeText(company.address) : company.address,
+        email: company.email ? normalizeEmail(company.email) : company.email,
+        nif: company.nif ? normalizeText(company.nif) : company.nif,
+        registrationNumbers: company.registrationNumbers ? normalizeText(company.registrationNumbers) : company.registrationNumbers
     });
     if (!validated.success) {
         console.error('Validation createCompany échouée:', validated.error.message);
@@ -111,7 +113,8 @@ export const createCompany = async (company: Omit<Company, 'id'>): Promise<Compa
             registration_numbers: clean.registrationNumbers,
             seal_image: clean.sealImage,
             is_default: clean.isDefault || false,
-            template_id: clean.templateId || 'template_standard'
+            template_id: clean.templateId || 'template_standard',
+            markup_percentage: clean.markupPercentage || 0
         }])
         .select()
         .single();
@@ -129,10 +132,10 @@ export const updateCompany = async (id: string, company: Partial<Company>): Prom
     const filteredUpdates: any = {};
     if (company.name !== undefined) filteredUpdates.name = normalizeText(company.name);
     if (company.displayName !== undefined) filteredUpdates.displayName = normalizeText(company.displayName);
-    if (company.address !== undefined) filteredUpdates.address = normalizeText(company.address || '');
-    if (company.email !== undefined) filteredUpdates.email = normalizeEmail(company.email || '');
-    if (company.nif !== undefined) filteredUpdates.nif = normalizeText(company.nif || '');
-    if (company.registrationNumbers !== undefined) filteredUpdates.registrationNumbers = normalizeText(company.registrationNumbers || '');
+    if (company.address !== undefined) filteredUpdates.address = company.address ? normalizeText(company.address) : company.address;
+    if (company.email !== undefined) filteredUpdates.email = company.email ? normalizeEmail(company.email) : company.email;
+    if (company.nif !== undefined) filteredUpdates.nif = company.nif ? normalizeText(company.nif) : company.nif;
+    if (company.registrationNumbers !== undefined) filteredUpdates.registrationNumbers = company.registrationNumbers ? normalizeText(company.registrationNumbers) : company.registrationNumbers;
 
     // On copie le reste des champs
     Object.keys(company).forEach(key => {
@@ -157,8 +160,11 @@ export const updateCompany = async (id: string, company: Partial<Company>): Prom
     if (clean.phone !== undefined) updates.phone = clean.phone;
     if (clean.email !== undefined) updates.email = clean.email;
     if (clean.hasStyledLogo !== undefined) updates.has_styled_logo = clean.hasStyledLogo;
+    if (clean.registrationNumbers !== undefined) updates.registration_numbers = clean.registrationNumbers;
     if (clean.sealImage !== undefined) updates.seal_image = clean.sealImage;
     if (clean.isDefault !== undefined) updates.is_default = clean.isDefault;
+    if (clean.templateId !== undefined) updates.template_id = clean.templateId;
+    if (clean.markupPercentage !== undefined) updates.markup_percentage = clean.markupPercentage;
 
     const { data, error } = await supabase
         .from('companies')

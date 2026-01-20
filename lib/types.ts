@@ -14,6 +14,7 @@ export interface Company {
   sealImage?: string | null; // Base64 signature or seal image
   isDefault: boolean;
   templateId?: string;
+  markupPercentage?: number; // Percentage markup for price calculations (default: 0)
 }
 
 export interface Client {
