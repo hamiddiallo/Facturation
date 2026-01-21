@@ -80,7 +80,7 @@ const ArticleList = memo(({
                             </th>
                             <th className={styles.designationCell}>Désignation</th>
                             <th>Quantité</th>
-                            <th>Unité</th>
+                            <th className={styles.unitCell}>Unité</th>
                             <th>Prix Unitaire (GNF)</th>
                             <th>Prix Total (GNF)</th>
                             <th>Action</th>
@@ -122,7 +122,7 @@ const ArticleList = memo(({
                                         required
                                     />
                                 </td>
-                                <td>
+                                <td className={styles.unitCell}>
                                     <input
                                         type="text"
                                         value={article.unit || ''}
