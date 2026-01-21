@@ -3,6 +3,7 @@ import { Company, InvoiceData, Article, InvoiceType } from './types';
 import { authService } from './authService';
 import { z } from 'zod';
 import { normalizeText, normalizeEmail } from './textUtils';
+import { formatBaseInvoiceNumber, adaptInvoiceNumber, getCounterName } from './counter';
 
 // Convertit une ligne Supabase (snake_case) vers le type Company (camelCase)
 const mapCompany = (data: any): Company => ({
@@ -53,6 +54,7 @@ const InvoiceSchema = z.object({
         adresse: z.string().nullable().optional()
     }),
     numeroFacture: z.string(),
+    dateFacture: z.string(),
     type: z.nativeEnum(InvoiceType),
     articles: z.array(ArticleSchema),
     amountPaid: z.number().nullable().optional()
@@ -223,6 +225,8 @@ export const deleteCompany = async (id: string): Promise<boolean> => {
 
 // --- SERVICES FACTURES ---
 
+// getCounterName moved to lib/counter.ts for better organization
+
 export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, totalAmount: number): Promise<string | null> => {
     // Validation & Normalisation
     const validated = InvoiceSchema.safeParse({
@@ -238,8 +242,9 @@ export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, 
     });
 
     if (!validated.success) {
-        console.error('Validation saveInvoiceCloud échouée:', validated.error.message);
-        return null;
+        const errorDetails = validated.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ');
+        console.error('Validation saveInvoiceCloud échouée:', errorDetails);
+        throw new Error(`Données invalides: ${errorDetails}`);
     }
 
     const clean = validated.data;
@@ -247,7 +252,8 @@ export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, 
     if (!user) return null;
 
     try {
-        // 1. Vérifier si une facture avec ce numéro existe déjà pour cet utilisateur
+        // --- DÉTECTION CRÉATION vs MISE À JOUR ---
+        // Vérifier si une facture avec ce numéro existe déjà
         const { data: existingInv, error: searchError } = await supabase
             .from('invoices')
             .select('id')
@@ -258,9 +264,11 @@ export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, 
         if (searchError) throw searchError;
 
         let invoiceId: string;
+        let finalInvoiceNumber = clean.numeroFacture;
 
         if (existingInv) {
-            // MODE UPDATE
+            // MODE UPDATE - Facture existe déjà
+            console.log('[saveInvoiceCloud] Mise à jour facture existante:', clean.numeroFacture);
             invoiceId = existingInv.id;
 
             // Mettre à jour l'en-tête
@@ -288,13 +296,37 @@ export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, 
             if (deleteError) throw deleteError;
 
         } else {
-            // MODE INSERT
+            // MODE CREATE - Nouvelle facture
+            console.log('[saveInvoiceCloud] Création nouvelle facture');
+
+            // Transaction atomique pour incrémenter le compteur
+            const counterName = getCounterName(new Date());
+            const { data: newSeq, error: rpcError } = await supabase.rpc('get_next_invoice_sequence', {
+                counter_name: counterName
+            });
+
+            if (rpcError) {
+                console.error('[saveInvoiceCloud] Erreur transaction atomique:', rpcError);
+                throw new Error(`Échec génération numéro atomique: ${rpcError.message}`);
+            }
+
+            // Générer le numéro avec la séquence atomique
+            const atomicNumber = formatBaseInvoiceNumber(newSeq, new Date());
+
+            // Vérifier si le numéro fourni correspond au numéro atomique
+            if (clean.numeroFacture && clean.numeroFacture !== atomicNumber) {
+                console.warn(`[saveInvoiceCloud] Numéro changé (accès concurrent): ${clean.numeroFacture} → ${atomicNumber}`);
+            }
+
+            // Utiliser le numéro atomique pour garantir l'unicité
+            finalInvoiceNumber = atomicNumber;
+
             const { data: invData, error: invError } = await supabase
                 .from('invoices')
                 .insert([{
                     user_id: user.id,
                     company_id: companyId,
-                    number: clean.numeroFacture,
+                    number: finalInvoiceNumber,
                     type: clean.type,
                     date: new Date().toISOString(),
                     client_name: clean.client.nom,
@@ -307,6 +339,8 @@ export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, 
 
             if (invError) throw invError;
             invoiceId = invData.id;
+
+            console.log('[saveInvoiceCloud] Facture créée avec numéro:', finalInvoiceNumber);
         }
 
         // 3. Insérer les nouveaux articles (déjà normalisés dans clean)
@@ -359,29 +393,64 @@ export const getInvoicesCloud = async (page: number = 0, pageSize: number = 20):
     return data || [];
 };
 
-export const getNextSequenceCloud = async (): Promise<number> => {
-    // On cible le compteur nommé 'global' partagé par tous
+/**
+ * Génère atomiquement le prochain numéro de séquence pour une facture
+ * Utilise une fonction SQL pour garantir l'unicité même en cas d'accès concurrent
+ * @param dateStr - Date pour déterminer le scope du compteur (YYMMDD)
+ * @returns Le numéro de séquence généré
+ * @throws Error si la génération échoue
+ */
+export const generateInvoiceNumberAtomic = async (dateStr: string | Date = new Date()): Promise<number> => {
+    const counterName = getCounterName(dateStr);
+
+    try {
+        // Appel de la fonction SQL atomique
+        const { data, error } = await supabase.rpc('get_next_invoice_sequence', {
+            counter_name: counterName
+        });
+
+        if (error) {
+            console.error('[generateInvoiceNumberAtomic] Erreur SQL:', error);
+            throw new Error(`Échec génération numéro: ${error.message}`);
+        }
+
+        if (data === null || data === undefined) {
+            throw new Error('La fonction SQL n\'a retourné aucune valeur');
+        }
+
+        console.log(`[generateInvoiceNumberAtomic] Séquence générée: ${data} pour ${counterName}`);
+        return data;
+    } catch (error: any) {
+        console.error('[generateInvoiceNumberAtomic] Erreur critique:', error);
+        throw error;
+    }
+};
+
+/**
+ * Récupère le prochain numéro de séquence SANS l'incrémenter (pour preview)
+ * @param dateStr - Date pour déterminer le scope du compteur
+ * @returns Le prochain numéro qui SERA utilisé
+ * @throws Error si la lecture échoue
+ */
+export const getNextSequenceCloud = async (dateStr: string | Date = new Date()): Promise<number> => {
+    const counterName = getCounterName(dateStr);
+
     const { data, error } = await supabase
         .from('counters')
         .select('last_sequence')
-        .eq('name', 'global')
-        .single();
+        .eq('name', counterName)
+        .maybeSingle();
 
-    let nextSeq = 1;
-    if (data) {
-        nextSeq = data.last_sequence + 1;
-        await supabase
-            .from('counters')
-            .update({
-                last_sequence: nextSeq,
-                updated_at: new Date().toISOString()
-            })
-            .eq('name', 'global');
-    } else {
-        // Au cas où le compteur n'est pas encore initialisé
-        await supabase.from('counters').insert({ name: 'global', last_sequence: 1 });
+    if (error) {
+        console.error('[getNextSequenceCloud] Erreur lecture compteur:', error);
+        throw new Error(`Échec lecture compteur: ${error.message}`);
     }
 
+    // Si le compteur n'existe pas encore, le prochain sera 1
+    // Si le compteur existe, le prochain sera last_sequence + 1
+    const nextSeq = data ? data.last_sequence + 1 : 1;
+
+    console.log(`[getNextSequenceCloud] Preview: ${nextSeq} pour ${counterName}`);
     return nextSeq;
 };
 

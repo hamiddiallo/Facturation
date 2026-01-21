@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Company, Article, InvoiceData, InvoiceType } from '@/lib/types';
 import { saveInvoiceData, getInvoiceData, clearInvoiceData } from '@/lib/storage';
 import { useAuth } from './AuthProvider';
-import { getCompanies, saveInvoiceCloud } from '@/lib/supabaseServices';
-import { getNextSequenceNumber, formatBaseInvoiceNumber } from '@/lib/counter';
+import { getCompanies, saveInvoiceCloud, getNextSequenceCloud } from '@/lib/supabaseServices';
+import { formatBaseInvoiceNumber } from '@/lib/counter';
 import { toast } from 'sonner';
 import ConfirmationDialog from './ConfirmationDialog';
 import ArticleList from './ArticleList';
@@ -33,23 +33,23 @@ export default function InvoiceForm() {
     const [amountPaid, setAmountPaid] = useState<number | string>(0);
     const [invoiceType, setInvoiceType] = useState<InvoiceType>(InvoiceType.PROFORMA);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [generatedNumber, setGeneratedNumber] = useState<string>('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Initial sequence
-    useEffect(() => {
-        if (!invoiceNumber) {
-            const seq = getNextSequenceNumber();
-            setInvoiceNumber(formatBaseInvoiceNumber(seq));
-        }
-    }, [invoiceNumber]);
+    // Initial sequence from Cloud
+    // Removed automatic number loading - user must click dice button
 
-    // Load data
+    // Load data (separate from initialization to avoid conflict)
     useEffect(() => {
         if (companies.length > 0 && !selectedCompany) {
             const data = getInvoiceData();
             if (data) {
                 setClientNom(data.client.nom);
                 setClientAdresse(data.client.adresse || '');
-                setInvoiceNumber(data.numeroFacture);
+                // Only override invoice number if we have saved data
+                if (data.numeroFacture) {
+                    setInvoiceNumber(data.numeroFacture);
+                }
                 setInvoiceDate(data.dateFacture);
                 setArticles(data.articles.map(a => ({ ...a, delivered: a.delivered ?? false })));
                 setAmountPaid(data.amountPaid || 0);
@@ -75,8 +75,8 @@ export default function InvoiceForm() {
         setArticles([{ designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false }]);
         setAmountPaid('');
         setInvoiceType(InvoiceType.PROFORMA);
-        const seq = getNextSequenceNumber();
-        setInvoiceNumber(formatBaseInvoiceNumber(seq));
+        setInvoiceNumber('');
+        setGeneratedNumber(''); // Reset pour permettre nouvelle réservation
         toast.success('Formulaire réinitialisé avec succès');
     };
 
@@ -108,6 +108,23 @@ export default function InvoiceForm() {
 
     const totalFacture = useMemo(() => articles.reduce((sum, article) => sum + article.totalPrice, 0), [articles]);
 
+    const handleGenerateNumber = async () => {
+        try {
+            // Lire le prochain numéro disponible (counter + 1)
+            const nextSeq = await getNextSequenceCloud();
+            const formatted = formatBaseInvoiceNumber(nextSeq);
+            setInvoiceNumber(formatted);
+            toast.success("Numéro suggéré", {
+                description: `${formatted} - Prochain numéro disponible`
+            });
+        } catch (error) {
+            console.error(error);
+            toast.error("Échec de lecture du compteur", {
+                description: "Vérifiez votre connexion internet."
+            });
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedCompany) {
@@ -119,7 +136,7 @@ export default function InvoiceForm() {
 
         const invoiceData: InvoiceData = {
             client: { nom: clientNom, adresse: clientAdresse },
-            numeroFacture: invoiceNumber,
+            numeroFacture: invoiceNumber, // Numéro réservé par le bouton dé
             dateFacture: invoiceDate,
             articles,
             totalFacture,
@@ -128,9 +145,37 @@ export default function InvoiceForm() {
             type: invoiceType,
         };
 
-        saveInvoiceData(invoiceData);
-        saveInvoiceCloud(invoiceData, selectedCompany.id, totalFacture);
-        router.push('/preview');
+        const performSave = async () => {
+            setIsSubmitting(true);
+            const toastId = toast.loading("Sauvegarde en cours...");
+
+            try {
+                // Sauvegarde locale (immédiate)
+                saveInvoiceData(invoiceData);
+
+                // Sauvegarde cloud (doit être attendue pour garantir l'incrément)
+                const result = await saveInvoiceCloud(invoiceData, selectedCompany.id, totalFacture);
+
+                if (!result) {
+                    throw new Error("Échec de la sauvegarde Cloud");
+                }
+
+
+                // Clear state pour la prochaine facture
+                setGeneratedNumber('');
+                toast.success("Facture enregistrée", { id: toastId });
+                router.push('/preview');
+            } catch (error) {
+                console.error(error);
+                toast.error("Erreur lors de la sauvegarde", {
+                    id: toastId,
+                    description: "Vérifiez votre connexion internet."
+                });
+                setIsSubmitting(false);
+            }
+        };
+
+        performSave();
     };
 
     return (
@@ -189,12 +234,14 @@ export default function InvoiceForm() {
                                     value={invoiceNumber}
                                     onChange={(e) => setInvoiceNumber(e.target.value)}
                                     className={styles.input}
-                                    required
+                                    placeholder="Cliquez sur 🎲 pour réserver un numéro"
+                                    readOnly={true}
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => setInvoiceNumber(formatBaseInvoiceNumber(getNextSequenceNumber()))}
+                                    onClick={handleGenerateNumber}
                                     className={styles.suggestButton}
+                                    title="Générer le prochain numéro"
                                 >
                                     🎲
                                 </button>
@@ -228,8 +275,8 @@ export default function InvoiceForm() {
                 <button type="button" onClick={handleClearData} className={styles.clearButton}>
                     🗑️ Réinitialiser
                 </button>
-                <button type="submit" className={styles.submitButton}>
-                    Finaliser et Prévisualiser →
+                <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
+                    {isSubmitting ? 'Finalisation...' : 'Finaliser et Prévisualiser →'}
                 </button>
             </div>
 

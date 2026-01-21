@@ -1,7 +1,5 @@
 import { InvoiceType, Company } from './types';
 
-const GLOBAL_COUNTER_KEY = 'global_invoice_counter';
-
 /**
  * Extrait les initiales du nom d'entreprise pour le préfixe de facture
  * Exemples:
@@ -38,26 +36,30 @@ export const getTypePrefix = (type: InvoiceType): string => {
     }
 };
 
-export const getNextSequenceNumber = (): number => {
-    if (typeof window === 'undefined') return 1;
-    const stored = localStorage.getItem(GLOBAL_COUNTER_KEY);
-    return stored ? parseInt(stored, 10) + 1 : 1;
-};
 
-export const saveLastSequenceNumber = (num: number): void => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(GLOBAL_COUNTER_KEY, num.toString());
+/**
+ * Generate counter name based on date (format: invoice_YYMMDD)
+ * @param dateStr - Date to generate counter name for
+ * @returns Counter name string
+ */
+export const getCounterName = (dateStr: string | Date = new Date()): string => {
+    const d = new Date(dateStr);
+    const yy = d.getFullYear().toString().slice(-2);
+    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+    const dd = d.getDate().toString().padStart(2, '0');
+    return `invoice_${yy}${mm}${dd}`;
 };
 
 /**
  * Formats a generic number for the form (e.g., FAC-2501-0001)
  */
-export const formatBaseInvoiceNumber = (sequence: number): string => {
-    const date = new Date();
+export const formatBaseInvoiceNumber = (sequence: number, dateStr: string | Date = new Date()): string => {
+    const date = new Date(dateStr);
     const yy = date.getFullYear().toString().slice(-2);
     const mm = (date.getMonth() + 1).toString().padStart(2, '0');
+    const dd = date.getDate().toString().padStart(2, '0');
     const seq = sequence.toString().padStart(4, '0');
-    return `FAC-${yy}${mm}-${seq}`;
+    return `FAC-${yy}${mm}${dd}-${seq}`;
 };
 
 /**

@@ -68,6 +68,7 @@ export async function verifyCredentials(email: string, pass: string) {
 
     try {
         // 1. Chercher le profil par email
+        console.log(`Tentative de login pour: ${email}`);
         const { data: profile, error } = await supabaseAdmin
             .from('profiles')
             .select('*')
@@ -105,13 +106,18 @@ export async function verifyCredentials(email: string, pass: string) {
 
         // 3. Définir le cookie de session (Sécurisé & HttpOnly)
         const cookieStore = await cookies();
-        cookieStore.set(SESSION_COOKIE_NAME, JSON.stringify(user), {
+        const cookieValue = JSON.stringify(user);
+
+        cookieStore.set(SESSION_COOKIE_NAME, cookieValue, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            // Toujours secure si possible, ou au moins lax pour ngrok
+            secure: true,
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7, // 1 semaine
             path: '/'
         });
+
+        console.log(`Login réussi pour ${user.email} (Role: ${user.role}) - Cookie défini`);
 
         // 4. Retourner les infos (SANS le password_hash)
         return {
@@ -322,15 +328,23 @@ export async function verifyServerSession(requiredRole?: 'admin' | 'user') {
     const cookieStore = await cookies();
     const session = cookieStore.get(SESSION_COOKIE_NAME);
 
-    if (!session?.value) return null;
+    if (!session?.value) {
+        console.warn('verifyServerSession: Aucun cookie trouvé');
+        return null;
+    }
 
     try {
-        const user = JSON.parse(session.value);
+        // Le cookie peut être encodé en URI s'il contient des caractères spéciaux
+        const decodedValue = decodeURIComponent(session.value);
+        const user = JSON.parse(decodedValue);
+
         if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
+            console.warn(`verifyServerSession: Rôle insuffisant (${user.role} vs ${requiredRole})`);
             return null;
         }
         return user;
-    } catch {
+    } catch (err) {
+        console.error('verifyServerSession: Erreur de parsing du cookie', err);
         return null;
     }
 }
