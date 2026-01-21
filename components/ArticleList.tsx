@@ -78,7 +78,7 @@ const ArticleList = memo(({
                                     {articles.every(a => a.delivered) ? '☑' : '☐'}
                                 </button>
                             </th>
-                            <th>Désignation</th>
+                            <th className={styles.designationCell}>Désignation</th>
                             <th>Quantité</th>
                             <th>Unité</th>
                             <th>Prix Unitaire (GNF)</th>
@@ -102,7 +102,7 @@ const ArticleList = memo(({
                                         title="Article livré"
                                     />
                                 </td>
-                                <td>
+                                <td className={styles.designationCell}>
                                     <input
                                         type="text"
                                         value={article.designation}

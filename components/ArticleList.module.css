@@ -89,6 +89,10 @@
     width: 50px;
 }
 
+.designationCell {
+    min-width: 450px;
+}
+
 .input,
 .inputNumber,
 .inputSmall {

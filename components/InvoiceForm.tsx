@@ -234,8 +234,8 @@ export default function InvoiceForm() {
                                     value={invoiceNumber}
                                     onChange={(e) => setInvoiceNumber(e.target.value)}
                                     className={styles.input}
-                                    placeholder="Cliquez sur 🎲 pour réserver un numéro"
-                                    readOnly={true}
+                                    placeholder="Ex: FAC-2501-0001"
+                                // readOnly={true} // Débloqué pour édition manuelle
                                 />
                                 <button
                                     type="button"
