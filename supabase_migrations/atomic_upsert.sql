@@ -2,10 +2,16 @@
 -- SÉCURISATION DES TRANSACTIONS ET UNICITÉ
 -- ======================================================
 
--- 1. Ajout d'une contrainte d'unicité par utilisateur
--- Empêche d'avoir deux factures avec le même numéro pour un même compte
-ALTER TABLE public.invoices 
-ADD CONSTRAINT unique_user_invoice_number UNIQUE (user_id, number);
+-- 1. Ajout d'une contrainte d'unicité par utilisateur (Idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'unique_user_invoice_number'
+    ) THEN
+        ALTER TABLE public.invoices 
+        ADD CONSTRAINT unique_user_invoice_number UNIQUE (user_id, number);
+    END IF;
+END $$;
 
 -- 2. Fonction RPC pour sauvegarde atomique (Facture + Articles)
 -- Cette fonction gère le Create et le Update en une seule transaction SQL
@@ -20,7 +26,9 @@ CREATE OR REPLACE FUNCTION public.upsert_full_invoice(
     p_client_address TEXT,
     p_amount_paid NUMERIC,
     p_total_amount NUMERIC,
-    p_articles JSONB        -- Liste des articles au format JSON
+    p_articles JSONB,       -- Liste des articles au format JSON
+    p_counter_name TEXT DEFAULT NULL, -- Nom du compteur à mettre à jour (ex: invoice_250125)
+    p_new_sequence INTEGER DEFAULT NULL -- Nouvelle séquence à atteindre (ex: 5)
 ) RETURNS UUID AS $$
 DECLARE
     v_invoice_id UUID;
@@ -50,6 +58,17 @@ BEGIN
         ) VALUES (
             p_user_id, p_company_id, p_number, p_type, p_date, p_client_name, p_client_address, p_amount_paid, p_total_amount
         ) RETURNING id INTO v_invoice_id;
+
+        -- MISE À JOUR DU COMPTEUR (Seulement lors d'une création)
+        IF p_counter_name IS NOT NULL AND p_new_sequence IS NOT NULL THEN
+            -- On met à jour last_sequence seulement si la nouvelle séquence est supérieure
+            -- Cela gère le cas où l'utilisateur force un numéro plus grand manuellement
+            INSERT INTO public.counters (name, last_sequence)
+            VALUES (p_counter_name, p_new_sequence)
+            ON CONFLICT (name) DO UPDATE
+            SET last_sequence = GREATEST(public.counters.last_sequence, EXCLUDED.last_sequence);
+        END IF;
+
     END IF;
 
     -- Insertion des nouveaux articles depuis le JSON

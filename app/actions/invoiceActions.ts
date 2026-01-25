@@ -105,6 +105,34 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
             total_price: art.totalPrice
         }));
 
+        // --- B. EXTRACTION DU COMPTEUR POUR MISE À JOUR ATOMIQUE ---
+        // On doit deviner quel compteur et quelle séquence mettre à jour
+        // Format typique : FAC-260125-0005 ou MLF-260125-0005
+        let counterName = null;
+        let newSequence = null;
+
+        if (!existingInv) { // Seulement en création
+            // 1. Essayer d'extraire la séquence (derniers chiffres)
+            const sequenceMatch = clean.numeroFacture.match(/-(\d+)$/);
+            if (sequenceMatch) {
+                newSequence = parseInt(sequenceMatch[1], 10);
+
+                // 2. Déterminer le nom du compteur basé sur la date de la facture
+                // (On suppose que le numéro respecte la date de la facture)
+                // Attention: clean.dateFacture est au format local "JJ/MM/AAAA" d'après InvoiceForm
+                // Nous devons le convertir en objet Date pour getCounterName
+                const [day, month, year] = clean.dateFacture.split('/');
+                if (day && month && year) {
+                    // "25/01/2026" -> new Date("2026-01-25")
+                    const dateObj = new Date(`${year}-${month}-${day}`);
+                    counterName = getCounterName(dateObj);
+                } else {
+                    // Fallback si format date invalide : on utilise aujourd'hui
+                    counterName = getCounterName(new Date());
+                }
+            }
+        }
+
         // Appel de la fonction RPC atomique
         const { data: invoiceId, error: rpcError } = await supabaseAdmin.rpc('upsert_full_invoice', {
             p_user_id: session.id,
@@ -117,7 +145,9 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
             p_client_address: clean.client.adresse || '',
             p_amount_paid: clean.amountPaid || 0,
             p_total_amount: totalAmount,
-            p_articles: jsonArticles
+            p_articles: jsonArticles,
+            p_counter_name: counterName,   // Nouveau param (peut être null)
+            p_new_sequence: newSequence    // Nouveau param (peut être null)
         });
 
         if (rpcError) throw rpcError;
