@@ -17,6 +17,9 @@ importers:
       browser-image-compression:
         specifier: ^2.0.2
         version: 2.0.2
+      canvas-confetti:
+        specifier: ^1.9.4
+        version: 1.9.4
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
@@ -54,6 +57,9 @@ importers:
       '@types/bcryptjs':
         specifier: ^3.0.0
         version: 3.0.0
+      '@types/canvas-confetti':
+        specifier: ^1.9.0
+        version: 1.9.0
       '@types/node':
         specifier: ^20
         version: 20.19.29
@@ -472,6 +478,9 @@ packages:
     resolution: {integrity: sha512-WRZOuCuaz8UcZZE4R5HXTco2goQSI2XxjGY3hbM/xDvwmqFWd4ivooImsMx65OKM6CtNKbnZ5YL+YwAwK7c1dg==}
     deprecated: This is a stub types definition. bcryptjs provides its own type definitions, so you do not need this installed.
 
+  '@types/canvas-confetti@1.9.0':
+    resolution: {integrity: sha512-aBGj/dULrimR1XDZLtG9JwxX1b4HPRF6CX9Yfwh3NvstZEm1ZL7RBnel4keCPSqs1ANRu1u2Aoz9R+VmtjYuTg==}
+
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
@@ -787,6 +796,9 @@ packages:
 
   caniuse-lite@1.0.30001764:
     resolution: {integrity: sha512-9JGuzl2M+vPL+pz70gtMF9sHdMFbY9FJaQBi186cHKH3pSzDvzoUJUPV6fqiKIMyXbud9ZLg4F3Yza1vJ1+93g==}
+
+  canvas-confetti@1.9.4:
+    resolution: {integrity: sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==}
 
   canvg@3.0.11:
     resolution: {integrity: sha512-5ON+q7jCTgMp9cjpu4Jo6XbvfYwSB2Ow3kzHKfIyJfaCAOHLbdKPQqGKgfED/R5B+3TFFfe8pegYA+b423SRyA==}
@@ -2312,6 +2324,8 @@ snapshots:
     dependencies:
       bcryptjs: 3.0.3
 
+  '@types/canvas-confetti@1.9.0': {}
+
   '@types/estree@1.0.8': {}
 
   '@types/json-schema@7.0.15': {}
@@ -2647,6 +2661,8 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001764: {}
+
+  canvas-confetti@1.9.4: {}
 
   canvg@3.0.11:
     dependencies:

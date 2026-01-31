@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Sidebar from "@/components/Sidebar";
+import WeeklyCelebration from "./WeeklyCelebration";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -10,6 +11,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return (
         <div className="mainLayout">
             <Sidebar />
+            <WeeklyCelebration />
             <main className={`contentWrapper ${isNoSidebar ? 'noSidebar' : ''}`}>
                 {children}
             </main>

@@ -12,6 +12,7 @@
     "@supabase/supabase-js": "^2.90.1",
     "bcryptjs": "^3.0.3",
     "browser-image-compression": "^2.0.2",
+    "canvas-confetti": "^1.9.4",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.12.1",
     "jspdf": "^3.0.4",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
