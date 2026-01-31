@@ -1,82 +1,82 @@
 export const weeklyMessages = [
     {
         id: 1,
-        text: "Bonne semaine, Koto 🤍 Merci pour tout ce que tu fais pour nous… qu’Allah t’ouvre les meilleures portes. Nous allons réussir ensemble inchaAllah 🚀"
+        text: "Bonne semaine, Koto ! Merci pour tout ce que tu fais pour nous. Ton courage et ta détermination nous inspirent chaque jour. Qu'Allah te facilite tous tes projets ! 🤲✨"
     },
     {
         id: 2,
-        text: "Nouvelle semaine, nouvelles opportunités 💼 Nous croyons en toi plus que tu ne l’imagines. Continue d’avancer, Nous fier de toi 🤍"
+        text: "Mon patron 😁🫡🫡, tu es notre pilier et notre fierté. Cette semaine sera remplie de succès inchaAllah. On croit en toi et on est là pour toi, toujours ! 💪❤️"
     },
     {
         id: 3,
-        text: "Koto, c’est ta semaine ✨ Ta détermination m’inspire chaque jour. Qu’Allah mette la baraka dans tout ce que tu entreprends 🤲"
+        text: "Koto, ton sacrifice et ton travail acharné ne passent pas inaperçus. Qu'Allah te récompense au-delà de tes espérances. Nous réussirons ensemble inchaAllah ! 🌟🤲"
     },
     {
         id: 4,
-        text: "Chaque petit effort que tu fais construit un grand avenir 🏆 Merci d’être ce pilier pour nous. Bonne semaine champion 🤍"
+        text: "Chaque effort que tu fais pour nous est une bénédiction. Merci d'être un exemple de persévérance et de générosité. Excellente semaine à toi, champion ! 🏆💚"
     },
     {
         id: 5,
-        text: "Bonne semaine Koto 😊 Garde ton énergie et tes valeurs, c’est ta force. Je te souhaite une semaine pleine de réussite et de paix 🤍"
+        text: "Mon patron 😁🫡🫡, ta force nous donne de la force. Ton sourire illumine nos journées. Que cette semaine t'apporte autant de bonheur que tu nous en donnes ! 😊"
     },
     {
         id: 6,
-        text: "Qu’Allah mette du succès dans ton travail et de la facilité dans tes journées 📈 Nous reconnaissant de t’avoir comme Koto 🤍"
+        text: "Koto, merci de croire en nous et de nous soutenir inconditionnellement. Qu'Allah multiplie tes bénédictions et tes revenus cette semaine inchaAllah ! 📈🤲"
     },
     {
         id: 7,
-        text: "Ta rigueur et ton courage sont une leçon pour moi 💎 Merci pour tout ce que tu fais, même quand personne ne le voit. Bonne semaine 🤍"
+        text: "Ton dévouement et ta sagesse nous guident. Nous sommes fiers d'avoir un Koto comme toi. Que cette semaine soit remplie de réussites et de baraka ! 💎✨"
     },
     {
         id: 8,
-        text: "Koto 💪 ton travail finira toujours par payer. Ne doute jamais : tu es sur le bon chemin. Nous allons réussir ensemble inchaAllah 🤍"
+        text: "Mon patron 😁🫡🫡, tu portes tant de responsabilités avec courage. Sache que nous sommes reconnaissants pour chaque sacrifice. Ensemble, nous irons loin inchaAllah ! 💪🚀"
     },
     {
         id: 9,
-        text: "Cette semaine encore, je te souhaite de briller 🌟 Pas seulement dans le travail… mais aussi dans le cœur, la paix et la baraka 🤲"
+        text: "Koto, ta présence est un cadeau. Merci d'être notre roc, notre mentor, notre héros. Que cette semaine t'apporte paix et prospérité ! 🌟❤️"
     },
     {
         id: 10,
-        text: "Organisation, discipline, succès ✅ Mais surtout : prends soin de toi Koto. Merci pour tout, Nous fier de toi 🤍"
+        text: "Chaque jour à tes côtés est une leçon de vie. Merci pour ta patience et ton amour. Qu'Allah te préserve et te comble de succès ! Bonne semaine ! 🤲💚"
     },
     {
         id: 11,
-        text: "Transforme tes objectifs en réalité 🧿 Qu’Allah protège tes projets et te donne encore plus de force. Bonne semaine Koto 🤍"
+        text: "Mon patron 😁🫡🫡, ton travail acharné et ta foi sont une inspiration. Nous réussirons ensemble inchaAllah, car avec un frère comme toi, rien n'est impossible ! 🧿✨"
     },
     {
         id: 12,
-        text: "La confiance, la patience et la foi 🤝 C’est ce qui fait ta grandeur. Je te souhaite une semaine remplie de réussite. Nous allons réussir ensemble inchaAllah 🤍"
+        text: "Koto, tu es la preuve vivante que le travail et la foi déplacent les montagnes. Merci d'être toi. Qu'Allah te réserve le meilleur ! Excellente semaine ! 🏔️🤲"
     },
     {
         id: 13,
-        text: "Bonne semaine Koto 🤍 Que chaque effort que tu fais aujourd’hui devienne une victoire demain. Qu’Allah facilite tout ce que tu portes sur tes épaules 🤲"
+        text: "Ton amour et ton soutien nous portent chaque jour. Nous prions pour ta réussite et ton bonheur. Ensemble, nous vaincrons toutes les épreuves inchaAllah ! 💪❤️"
     },
     {
         id: 14,
-        text: "Je te souhaite une semaine légère dans le cœur et grande dans les résultats 🌿 Tu mérites le meilleur, vraiment 🤍"
+        text: "Mon patron 😁🫡🫡, merci de croire en nos rêves autant qu'aux tiens. Ta générosité n'a pas de limites. Que cette semaine soit à l'image de ton grand cœur ! 💚🌟"
     },
     {
         id: 15,
-        text: "Koto, merci pour ton soutien, ta présence et ta force 💪 Même quand tu ne dis rien, tu fais beaucoup. Bonne semaine 🤍"
+        text: "Koto, chaque facture, chaque projet est une pierre de plus vers notre réussite collective. Qu'Allah bénisse ton commerce et te facilite tout ! 🚀🤲"
     },
     {
         id: 16,
-        text: "Que cette semaine t’apporte des opportunités inattendues et de belles réussites ✨ Nous fier d’apprendre de toi chaque jour 🤍"
+        text: "Tu nous apprends que la famille est la plus grande richesse. Merci d'être présent, aimant et protecteur. Bonne semaine, que la baraka t'accompagne ! 🏡✨"
     },
     {
         id: 17,
-        text: "Ne lâche rien Koto 🚀 Tout ce que tu construis aujourd’hui, c’est l’avenir de demain. Nous allons réussir ensemble inchaAllah 🤍"
+        text: "Mon patron 😁🫡🫡, ta détermination nous montre qu'aucun obstacle n'est insurmontable. Nous marchons dans tes pas avec fierté. Nous réussirons ensemble inchaAllah ! 💪"
     },
     {
         id: 18,
-        text: "Bonne semaine 🤍 Qu’Allah mette la baraka dans ton travail, protège tes projets et t’accorde la paix intérieure 🤲"
+        text: "Koto, merci pour les sacrifices qu'on ne voit pas toujours mais qu'on ressent profondément. Qu'Allah t'accorde une semaine pleine de succès et de joie ! 😊🤲"
     },
     {
         id: 19,
-        text: "Ton sérieux, ta patience et ta vision forcent le respect 💎 Continue d’avancer, Nous derrière toi à 100% 🤍"
+        text: "Ton courage face aux défis nous inspire à devenir meilleurs. Merci d'être notre guide et notre exemple. Excellente semaine à toi, notre héros ! 🏆❤️"
     },
     {
         id: 20,
-        text: "Une nouvelle semaine commence 🌟 Je te souhaite du succès, de la santé et de la force. Merci pour tout Koto… on avance ensemble inchaAllah 🤍"
+        text: "Mon patron 😁🫡🫡, avec toi à nos côtés, nous nous sentons invincibles. Que cette semaine t'apporte autant de force que tu nous en donnes ! Nous réussirons ensemble inchaAllah ! 💎🚀"
     }
 ];
