@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import { Company } from '@/lib/types';
 import {
@@ -522,7 +523,14 @@ export default function SettingsPage() {
                                                     <td style={{ padding: '1rem' }}>
                                                         <div className={styles.userThumbSection}>
                                                             {u.avatar_url ? (
-                                                                <img src={u.avatar_url} alt="" className={styles.userThumb} />
+                                                                <Image
+                                                                    src={u.avatar_url}
+                                                                    alt=""
+                                                                    width={32}
+                                                                    height={32}
+                                                                    className={styles.userThumb}
+                                                                    style={{ borderRadius: '50%', objectFit: 'cover' }}
+                                                                />
                                                             ) : (
                                                                 <div className={styles.userThumbPlaceholder}>
                                                                     {u.full_name?.[0]?.toUpperCase() || 'U'}
@@ -674,52 +682,82 @@ export default function SettingsPage() {
                                             className={`${styles.templateOption} ${editingCompany.templateId === 'template_standard' ? styles.templateOptionSelected : ''}`}
                                             onClick={() => setEditingCompany({ ...editingCompany, templateId: 'template_standard' })}
                                         >
-                                            <img src="/templates/template_standard.png" alt="Standard" className={styles.templatePreview} />
+                                            <Image
+                                                src="/templates/template_standard.png"
+                                                alt="Standard"
+                                                width={150}
+                                                height={200}
+                                                className={styles.templatePreview}
+                                            />
                                             <span className={styles.templateLabel}>Modèle 1</span>
                                         </div>
                                         <div
                                             className={`${styles.templateOption} ${editingCompany.templateId === 'template_modern' ? styles.templateOptionSelected : ''}`}
                                             onClick={() => setEditingCompany({ ...editingCompany, templateId: 'template_modern' })}
                                         >
-                                            <img src="/templates/template_modern.png" alt="Modern" className={styles.templatePreview} />
+                                            <Image
+                                                src="/templates/template_modern.png"
+                                                alt="Modern"
+                                                width={150}
+                                                height={200}
+                                                className={styles.templatePreview}
+                                            />
                                             <span className={styles.templateLabel}>Modèle 2</span>
                                         </div>
                                         <div
                                             className={`${styles.templateOption} ${editingCompany.templateId === 'template_classic' ? styles.templateOptionSelected : ''}`}
                                             onClick={() => setEditingCompany({ ...editingCompany, templateId: 'template_classic' })}
                                         >
-                                            <img src="/templates/template_classic.png" alt="Classic" className={styles.templatePreview} />
+                                            <Image
+                                                src="/templates/template_classic.png"
+                                                alt="Classic"
+                                                width={150}
+                                                height={200}
+                                                className={styles.templatePreview}
+                                            />
                                             <span className={styles.templateLabel}>Modèle 3</span>
                                         </div>
                                         <div
                                             className={`${styles.templateOption} ${editingCompany.templateId === 'template_moderne_blue' ? styles.templateOptionSelected : ''}`}
                                             onClick={() => setEditingCompany({ ...editingCompany, templateId: 'template_moderne_blue' })}
                                         >
-                                            <img src="/templates/template_moderne_blue.png" alt="Moderne Blue" className={styles.templatePreview} />
+                                            <Image
+                                                src="/templates/template_moderne_blue.png"
+                                                alt="Moderne Blue"
+                                                width={150}
+                                                height={200}
+                                                className={styles.templatePreview}
+                                            />
                                             <span className={styles.templateLabel}>Modèle 4</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className={styles.sealSection}>
-                                    <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 600 }}>Signature / Cachet (Optionnel)</label>
+                                <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 600 }}>Signature / Cachet (Optionnel)</label>
+                                {editingCompany.sealImage && (
+                                    <Image
+                                        src={editingCompany.sealImage}
+                                        alt="Preview"
+                                        width={150}
+                                        height={150}
+                                        className={styles.sealPreview}
+                                        unoptimized={editingCompany.sealImage.startsWith('data:')}
+                                        style={{ objectFit: 'contain' }}
+                                    />
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                                    <label className={styles.uploadButton}>
+                                        📷 {editingCompany.sealImage ? 'Changer' : 'Uploader'}
+                                        <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+                                    </label>
                                     {editingCompany.sealImage && (
-                                        <img src={editingCompany.sealImage} alt="Preview" className={styles.sealPreview} />
+                                        <button
+                                            onClick={() => setEditingCompany({ ...editingCompany, sealImage: null })}
+                                            style={{ background: 'transparent', color: '#e53e3e', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                                        >
+                                            Retirer
+                                        </button>
                                     )}
-                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                                        <label className={styles.uploadButton}>
-                                            📷 {editingCompany.sealImage ? 'Changer' : 'Uploader'}
-                                            <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-                                        </label>
-                                        {editingCompany.sealImage && (
-                                            <button
-                                                onClick={() => setEditingCompany({ ...editingCompany, sealImage: null })}
-                                                style={{ background: 'transparent', color: '#e53e3e', border: 'none', cursor: 'pointer', fontWeight: 600 }}
-                                            >
-                                                Retirer
-                                            </button>
-                                        )}
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -745,9 +783,16 @@ export default function SettingsPage() {
                         <form onSubmit={handleUpdateUser}>
                             <div className={styles.modalBody}>
                                 <div className={styles.avatarSection} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-                                    <div className={styles.userThumbPlaceholder} style={{ width: '80px', height: '80px', fontSize: '2rem', borderRadius: '50%' }}>
+                                    <div className={styles.userThumbPlaceholder} style={{ width: '80px', height: '80px', fontSize: '2rem', borderRadius: '50%', overflow: 'hidden' }}>
                                         {editingUser.avatar_url ? (
-                                            <img src={editingUser.avatar_url} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                            <Image
+                                                src={editingUser.avatar_url}
+                                                alt=""
+                                                width={80}
+                                                height={80}
+                                                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                                                unoptimized={editingUser.avatar_url.startsWith('blob:')}
+                                            />
                                         ) : (
                                             editingUser.fullName?.[0]?.toUpperCase() || 'U'
                                         )}

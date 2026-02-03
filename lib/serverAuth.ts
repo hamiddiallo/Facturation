@@ -1,11 +1,13 @@
 import { createSupabaseServerClient } from './supabaseServer';
 import { createClient } from '@supabase/supabase-js';
+import { cache } from 'react';
 
 /**
  * Utilité pour récupérer l'utilisateur et son profil côté serveur.
  * Utilise les cookies pour valider la session Supabase Auth.
+ * Enveloppé dans cache() pour éviter les appels redondants par requête.
  */
-export async function getServerSession() {
+export const getServerSession = cache(async () => {
     const supabaseClient = await createSupabaseServerClient();
 
     // 1. Récupérer l'utilisateur authentifié
@@ -33,7 +35,7 @@ export async function getServerSession() {
     }
 
     return { user, profile };
-}
+});
 
 /**
  * Protège une Server Action en vérifiant l'authentification.

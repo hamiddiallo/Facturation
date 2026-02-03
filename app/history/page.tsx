@@ -82,22 +82,30 @@ export default function HistoryPage() {
     const confirmDelete = async () => {
         if (!invoiceToDelete) return;
 
-        setInternalLoading(true);
+        // Configuration de la mutation optimiste
+        const updatedInvoices = invoices.filter((inv: any) => inv.id !== invoiceToDelete);
+
         try {
-            const success = await deleteInvoiceCloud(invoiceToDelete);
-            if (success) {
-                toast.success('Facture supprimée avec succès');
-                mutate();
-            } else {
-                toast.error('Erreur de suppression', {
-                    description: 'Impossible de supprimer la facture pour le moment.'
-                });
-            }
+            // Déclencher la mutation avec les données optimistes
+            await mutate(
+                deleteInvoiceCloud(invoiceToDelete).then(success => {
+                    if (!success) throw new Error('Delete failed');
+                    toast.success('Facture supprimée avec succès');
+                    return updatedInvoices;
+                }),
+                {
+                    optimisticData: updatedInvoices,
+                    rollbackOnError: true,
+                    populateCache: true,
+                    revalidate: true // On force la revalidation après pour être sûr du compteur de pagination
+                }
+            );
         } catch (err) {
             console.error('Erreur suppression:', err);
-            toast.error('Une erreur est survenue lors de la suppression.');
+            toast.error('Échec de la suppression', {
+                description: 'La facture n\'a pas pu être supprimée du serveur.'
+            });
         } finally {
-            setInternalLoading(false);
             setInvoiceToDelete(null);
         }
     };

@@ -31,29 +31,35 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    // IMPORTANT: Avoid writing any logic between createServerClient and
-    // supabase.auth.getUser(). A simple mistake can make it very hard to debug
-    // issues with users being randomly logged out.
-
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-
-    // --- LOGIQUE DE REDIRECTION ---
+    // --- OPTIMISATION PROXY ---
+    // On vérifie d'abord si des cookies de session Supabase existent.
+    // Si aucun cookie n'est présent et que c'est une route publique, on évite l'appel getUser.
     const url = request.nextUrl.clone()
     const isPublicRoute =
         url.pathname === '/login' ||
         url.pathname === '/auth/callback' ||
         url.pathname === '/preview'
 
+    const hasSessionCookie = request.cookies.getAll().some(c => c.name.startsWith('sb-'));
+
+    // Si pas de cookie et route publique, on continue sans appeler Supabase
+    if (!hasSessionCookie && isPublicRoute) {
+        return response
+    }
+
+    // IMPORTANT: Avoid writing any logic between createServerClient and
+    // supabase.auth.getUser().
+    const {
+        data: { user },
+    } = await supabase.auth.getUser()
+
+    // --- LOGIQUE DE REDIRECTION ---
     if (!user && !isPublicRoute) {
-        // Rediriger vers login si non authentifié sur une route protégée
         const loginUrl = new URL('/login', request.url)
         return NextResponse.redirect(loginUrl)
     }
 
     if (user && url.pathname === '/login') {
-        // Rediriger vers l'accueil si déjà authentifié sur la page login
         const homeUrl = new URL('/', request.url)
         return NextResponse.redirect(homeUrl)
     }

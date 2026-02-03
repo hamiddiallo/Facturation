@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/components/AuthProvider';
 import { adminUpdateProfile, uploadAvatarAction } from '@/lib/adminActions';
 import { authService } from '@/lib/authService';
@@ -154,10 +156,14 @@ export default function ProfilePage() {
                     <div className={styles.avatarSection}>
                         <div className={styles.avatarWrapper}>
                             {previewUrl || profile.avatar_url ? (
-                                <img
+                                <Image
                                     src={previewUrl || profile.avatar_url || ''}
                                     alt="Avatar"
+                                    width={120}
+                                    height={120}
                                     className={styles.avatar}
+                                    unoptimized={!!previewUrl && previewUrl.startsWith('blob:')}
+                                    style={{ borderRadius: '50%', objectFit: 'cover' }}
                                 />
                             ) : (
                                 <div className={styles.avatarPlaceholder}>

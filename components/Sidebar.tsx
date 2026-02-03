@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import { preload } from 'swr';
+import { getInvoicesCloud } from '@/lib/supabaseServices';
 import { useAuth } from './AuthProvider';
 import styles from './Sidebar.module.css';
 
@@ -15,9 +18,14 @@ export default function Sidebar() {
     const toggleSidebar = () => setIsOpen(!isOpen);
     const closeSidebar = () => setIsOpen(false);
 
+    const prefetchHistory = () => {
+        // Précharger la première page de l'historique (correspond à la clé SWR utilisée dans HistoryPage)
+        preload(['invoices', 0], () => getInvoicesCloud(0, 20));
+    };
+
     const navItems = [
         { label: 'Facturer', path: '/', icon: '📝' },
-        { label: 'Historique', path: '/history', icon: '📜' },
+        { label: 'Historique', path: '/history', icon: '📜', onMouseEnter: prefetchHistory },
         { label: 'Profil', path: '/profile', icon: '👤' },
         { label: 'Paramètres', path: '/settings', icon: '⚙️', adminOnly: true },
     ];
@@ -66,6 +74,7 @@ export default function Sidebar() {
                             href={item.path}
                             className={`${styles.navLink} ${pathname === item.path ? styles.activeLink : ''}`}
                             onClick={closeSidebar}
+                            onMouseEnter={item.onMouseEnter}
                         >
                             <span>{item.icon}</span>
                             <span>{item.label}</span>
@@ -76,7 +85,14 @@ export default function Sidebar() {
                 <div className={styles.userSection}>
                     <div className={styles.userAvatar}>
                         {profile?.avatar_url ? (
-                            <img src={profile.avatar_url} alt="Profile" className={styles.avatarImg} />
+                            <Image
+                                src={profile.avatar_url}
+                                alt="Profile"
+                                width={40}
+                                height={40}
+                                className={styles.avatarImg}
+                                style={{ borderRadius: '50%', objectFit: 'cover' }}
+                            />
                         ) : (
                             <div className={styles.avatarInitial}>
                                 {profile?.full_name?.[0]?.toUpperCase() || 'U'}
