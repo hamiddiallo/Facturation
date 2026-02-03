@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { authService, UserProfile } from '@/lib/authService';
+import { supabase } from '@/lib/supabase';
 
 const AuthContext = createContext<{
     profile: UserProfile | null;
@@ -23,41 +24,64 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const pathname = usePathname();
 
     useEffect(() => {
-        const checkAuth = async () => {
-            // 1. Récupérer l'utilisateur local
-            let currentUser = authService.getCurrentUser();
-
-            if (currentUser) {
-                // 2. Vérifier et rafraîchir en temps réel avec la DB
-                try {
-                    const freshProfile = await authService.refreshSession();
-
-                    if (!freshProfile || freshProfile.status !== 'active') {
-                        // Utilisateur supprimé ou désactivé -> Déconnexion immédiate
-                        signOut();
-                        return;
-                    }
-
-                    currentUser = freshProfile;
-                } catch (e) {
-                    console.error('Erreur vérification profil:', e);
-                }
-            }
-
-            setProfile(currentUser);
+        // Vérification initiale
+        authService.getCurrentUser().then(user => {
+            setProfile(user);
             setLoading(false);
 
-            if (!currentUser && pathname !== '/login') {
+            if (!user && pathname !== '/login') {
                 router.push('/login');
             }
-        };
+        });
 
-        checkAuth();
+        // Écouter les changements d'état d'authentification
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                console.log('Auth event:', event, 'Session:', session ? 'exists' : 'null');
+
+                // Ignorer INITIAL_SESSION car il se déclenche toujours au démarrage
+                if (event === 'INITIAL_SESSION') {
+                    return;
+                }
+
+                if (event === 'SIGNED_OUT') {
+                    // Mettre à jour l'état local et rediriger immédiatement
+                    setProfile(null);
+                    localStorage.removeItem('app_user_session');
+                    if (pathname !== '/login') {
+                        router.push('/login');
+                    }
+                } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    // ... (reste inchangé)
+                    try {
+                        const user = await authService.getCurrentUser();
+                        if (user) {
+                            setProfile(user);
+                        }
+                    } catch (error) {
+                        console.error('Erreur récupération profil:', error);
+                    }
+                }
+            }
+        );
+
+        return () => subscription.unsubscribe();
     }, [pathname, router]);
 
-    const signOut = () => {
-        authService.logout();
-        router.push('/login');
+    const signOut = async () => {
+        try {
+            await authService.logout();
+        } catch (error) {
+            console.error('Erreur lors de la déconnexion:', error);
+        } finally {
+            // Force le nettoyage et la redirection même en cas d'erreur API
+            setProfile(null);
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('app_user_session');
+            }
+            router.refresh(); // Vider le cache du routeur
+            router.push('/login');
+        }
     };
 
     if (loading && pathname !== '/login') {

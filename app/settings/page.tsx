@@ -15,11 +15,12 @@ import {
 import { adminCreateUser, adminDeleteUser, adminListUsers, adminUpdateProfile, uploadAvatarAction } from '@/lib/adminActions';
 import { useAuth } from '@/components/AuthProvider';
 import PasswordStrength from '@/components/PasswordStrength';
+import BackupManager from '@/components/BackupManager';
 import { toast } from 'sonner';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import styles from './page.module.css';
 
-type MainTab = 'companies' | 'users';
+type MainTab = 'companies' | 'users' | 'backup';
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -369,6 +370,14 @@ export default function SettingsPage() {
                                 👥 Utilisateurs
                             </button>
                         )}
+                        {profile?.role === 'admin' && (
+                            <button
+                                className={`${styles.mainTabButton} ${mainTab === 'backup' ? styles.mainTabActive : ''}`}
+                                onClick={() => setMainTab('backup')}
+                            >
+                                💾 Backups
+                            </button>
+                        )}
                     </div>
 
                     <div className={styles.tabContent}>
@@ -436,6 +445,13 @@ export default function SettingsPage() {
                                         </tbody>
                                     </table>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* ONGLET BACKUPS */}
+                        {mainTab === 'backup' && profile?.role === 'admin' && (
+                            <div className={styles.backupSection}>
+                                <BackupManager />
                             </div>
                         )}
 

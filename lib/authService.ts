@@ -1,6 +1,7 @@
 'use client';
 
-import { verifyCredentials, logoutAction } from './adminActions';
+import { supabase } from './supabase';
+import { getProfileById, getCurrentUserAction } from './adminActions';
 
 export interface UserProfile {
     id: string;
@@ -11,62 +12,72 @@ export interface UserProfile {
     avatar_url?: string;
 }
 
-const SESSION_KEY = 'app_user_session';
-
 export const authService = {
-    // Connexion via Action Serveur (Bypass RLS & Sécurisé)
-    async login(email: string, pass: string): Promise<{ success: boolean; error?: string }> {
+    // Login avec Supabase Auth
+    async login(email: string, password: string): Promise<{ success: boolean; error?: string; user?: UserProfile }> {
         try {
-            // On appelle l'action serveur qui utilise la Service Role Key
-            const result = await verifyCredentials(email, pass);
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
 
-            if (result.success && result.user) {
-                localStorage.setItem(SESSION_KEY, JSON.stringify(result.user));
-                return { success: true };
-            } else {
-                return { success: false, error: result.error || 'Identifiants invalides.' };
+            if (error) throw error;
+
+            // Récupérer le profil complet directement via le client (RLS s'applique)
+            // On évite la Server Action ici car le cookie de session n'est pas encore synchronisé
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', data.user.id)
+                .single();
+
+            if (profileError || !profile || profile.status !== 'active') {
+                await supabase.auth.signOut();
+                return { success: false, error: 'Compte inactif ou inaccessible' };
             }
-        } catch (e) {
-            return { success: false, error: 'Serveur injoignable ou erreur technique.' };
+
+            return { success: true, user: profile as UserProfile };
+        } catch (e: any) {
+            return { success: false, error: e.message || 'Identifiants incorrects' };
         }
     },
 
     // Déconnexion
     async logout() {
-        await logoutAction(); // Supprime le cookie côté serveur
-        localStorage.removeItem(SESSION_KEY);
-        window.location.href = '/login';
+        await supabase.auth.signOut();
+        // Nettoyer aussi le legacy localStorage au cas où
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('app_user_session');
+        }
     },
 
     // Récupérer l'utilisateur actuel
-    getCurrentUser(): UserProfile | null {
-        if (typeof window === 'undefined') return null;
-        const data = localStorage.getItem(SESSION_KEY);
-        if (!data) return null;
+    async getCurrentUser(): Promise<UserProfile | null> {
         try {
-            return JSON.parse(data);
-        } catch {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return null;
+
+            // Fetch du profil via le client pour éviter les erreurs de synchro cookies au rafraîchissement
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+            if (profileError || !profile || profile.status !== 'active') {
+                return null;
+            }
+
+            return profile as UserProfile;
+        } catch (error) {
+            console.error('Error fetching current user:', error);
             return null;
         }
     },
 
-    // Rafraîchir les infos de session depuis la DB
-    async refreshSession(): Promise<UserProfile | null> {
-        if (typeof window === 'undefined') return null;
-        const current = this.getCurrentUser();
-        if (!current) return null;
-
-        try {
-            const { getProfileById } = await import('./adminActions');
-            const freshProfile = await getProfileById(current.id);
-
-            if (freshProfile) {
-                localStorage.setItem(SESSION_KEY, JSON.stringify(freshProfile));
-                return freshProfile;
-            }
-        } catch (e: any) {
-            console.error('Erreur rafraîchissement session:', e.message);
-        }
-        return current;
+    // Récupérer la session Supabase
+    async getSession() {
+        const { data: { session } } = await supabase.auth.getSession();
+        return session;
     }
 };

@@ -154,7 +154,11 @@ export default function InvoiceForm() {
                 saveInvoiceData(invoiceData);
 
                 // Sauvegarde cloud (doit être attendue pour garantir l'incrément)
-                const result = await saveInvoiceCloud(invoiceData, selectedCompany.id, totalFacture);
+                const result = await saveInvoiceCloud(
+                    invoiceData,
+                    selectedCompany.id,
+                    totalFacture
+                );
 
                 if (!result) {
                     throw new Error("Échec de la sauvegarde Cloud");

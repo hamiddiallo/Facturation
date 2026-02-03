@@ -1,11 +1,23 @@
 'use server';
 
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { createClient } from '@supabase/supabase-js';
+// import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { InvoiceData, InvoiceType } from '@/lib/types';
 import { z } from 'zod';
 import { normalizeText } from '@/lib/textUtils';
 import { getCounterName, formatBaseInvoiceNumber } from '@/lib/counter';
-import { verifyServerSession } from '@/lib/adminActions';
+import { requireAuth, getServerSession } from '@/lib/serverAuth';
+
+// Helper to get Supabase Admin client (bypasses RLS)
+const getSupabaseAdmin = () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    if (!url || !serviceRole) {
+        console.error('CRITICAL: Supabase URL or Service Role Key is missing in ENV');
+    }
+    return createClient(url, serviceRole);
+};
+
 
 const ArticleSchema = z.object({
     designation: z.string().min(1),
@@ -28,12 +40,11 @@ const InvoiceSchema = z.object({
 });
 
 export async function getNextSequenceCloudAction(dateStr: string | Date = new Date()): Promise<number> {
-    const session = await verifyServerSession();
-    if (!session) throw new Error('Non autorisé');
-
+    await requireAuth();
+    const supabase = getSupabaseAdmin();
     const counterName = getCounterName(dateStr);
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
         .from('counters')
         .select('last_sequence')
         .eq('name', counterName)
@@ -48,12 +59,11 @@ export async function getNextSequenceCloudAction(dateStr: string | Date = new Da
 }
 
 export async function generateInvoiceNumberAtomicAction(dateStr: string | Date = new Date()): Promise<number> {
-    const session = await verifyServerSession();
-    if (!session) throw new Error('Non autorisé');
-
+    await requireAuth();
+    const supabase = getSupabaseAdmin();
     const counterName = getCounterName(dateStr);
 
-    const { data, error } = await supabaseAdmin.rpc('get_next_invoice_sequence', {
+    const { data, error } = await supabase.rpc('get_next_invoice_sequence', {
         counter_name: counterName
     });
 
@@ -66,8 +76,8 @@ export async function generateInvoiceNumberAtomicAction(dateStr: string | Date =
 }
 
 export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: string, totalAmount: number): Promise<string | null> {
-    const session = await verifyServerSession();
-    if (!session) return null;
+    const { user } = await requireAuth();
+    const supabase = getSupabaseAdmin();
 
     const validated = InvoiceSchema.safeParse({
         ...invoice,
@@ -89,12 +99,19 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
 
     try {
         // --- DÉTECTION PAR NUMÉRO (Permet le clonage en changeant le numéro) ---
-        const { data: existingInv } = await supabaseAdmin
+        const { data: existingInv } = await supabase
             .from('invoices')
-            .select('id')
-            .eq('user_id', session.id)
+            .select('id, user_id')
             .eq('number', clean.numeroFacture)
             .maybeSingle();
+
+        // Sécurité: Si la facture existe déjà, vérifier que l'utilisateur en est le propriétaire
+        if (existingInv && existingInv.user_id !== user.id) {
+            const { profile } = await requireAuth();
+            if (profile?.role !== 'admin') {
+                throw new Error('Action non autorisée');
+            }
+        }
 
         // Formattage des articles pour le JSONB Supabase
         const jsonArticles = clean.articles.map(art => ({
@@ -106,38 +123,29 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
         }));
 
         // --- B. EXTRACTION DU COMPTEUR POUR MISE À JOUR ATOMIQUE ---
-        // On doit deviner quel compteur et quelle séquence mettre à jour
-        // Format typique : FAC-260125-0005 ou MLF-260125-0005
         let counterName = null;
         let newSequence = null;
 
         if (!existingInv) { // Seulement en création
-            // 1. Essayer d'extraire la séquence (derniers chiffres)
             const sequenceMatch = clean.numeroFacture.match(/-(\d+)$/);
             if (sequenceMatch) {
                 newSequence = parseInt(sequenceMatch[1], 10);
 
-                // 2. Déterminer le nom du compteur basé sur la date de la facture
-                // (On suppose que le numéro respecte la date de la facture)
-                // Attention: clean.dateFacture est au format local "JJ/MM/AAAA" d'après InvoiceForm
-                // Nous devons le convertir en objet Date pour getCounterName
                 const [day, month, year] = clean.dateFacture.split('/');
                 if (day && month && year) {
-                    // "25/01/2026" -> new Date("2026-01-25")
                     const dateObj = new Date(`${year}-${month}-${day}`);
                     counterName = getCounterName(dateObj);
                 } else {
-                    // Fallback si format date invalide : on utilise aujourd'hui
                     counterName = getCounterName(new Date());
                 }
             }
         }
 
         // Appel de la fonction RPC atomique
-        const { data: invoiceId, error: rpcError } = await supabaseAdmin.rpc('upsert_full_invoice', {
-            p_user_id: session.id,
+        const { data: invoiceId, error: rpcError } = await supabase.rpc('upsert_full_invoice', {
+            p_user_id: user.id, // Utiliser l'ID de la session serveur
             p_company_id: companyId,
-            p_id: existingInv?.id || null, // Détecté par le numéro
+            p_id: existingInv?.id || null,
             p_number: clean.numeroFacture,
             p_type: clean.type,
             p_date: new Date().toISOString().split('T')[0], // Format YYYY-MM-DD
@@ -146,8 +154,8 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
             p_amount_paid: clean.amountPaid || 0,
             p_total_amount: totalAmount,
             p_articles: jsonArticles,
-            p_counter_name: counterName,   // Nouveau param (peut être null)
-            p_new_sequence: newSequence    // Nouveau param (peut être null)
+            p_counter_name: counterName,
+            p_new_sequence: newSequence
         });
 
         if (rpcError) throw rpcError;
@@ -160,36 +168,51 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
 }
 
 export async function getInvoicesCloudAction(page: number = 0, pageSize: number = 20): Promise<any[]> {
-    const session = await verifyServerSession();
+    const session = await getServerSession();
     if (!session) return [];
+
+    const { user, profile } = session;
+    const supabase = getSupabaseAdmin();
 
     const from = page * pageSize;
     const to = from + pageSize - 1;
 
-    const { data, error } = await supabaseAdmin
+    let query = supabase
         .from('invoices')
         .select(`
             *,
             companies (display_name),
             invoice_items (*)
-        `)
-        .eq('user_id', session.id)
+        `);
+
+    // Isolation des données : Les admins voient tout, les users voient les leurs
+    if (profile?.role !== 'admin') {
+        query = query.eq('user_id', user.id);
+    }
+
+    const { data, error } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
 
-    if (error) return [];
+    if (error) {
+        console.error('Action getInvoicesCloud error:', error.message);
+        return [];
+    }
     return data || [];
 }
 
 export async function deleteInvoiceCloudAction(id: string): Promise<boolean> {
-    const session = await verifyServerSession();
-    if (!session) return false;
+    const { user, profile } = await requireAuth();
+    const supabase = getSupabaseAdmin();
 
-    const { error } = await supabaseAdmin
-        .from('invoices')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', session.id);
+    let query = supabase.from('invoices').delete().eq('id', id);
+
+    // Isolation des données : Un utilisateur ne peut supprimer que ses propres factures
+    if (profile?.role !== 'admin') {
+        query = query.eq('user_id', user.id);
+    }
+
+    const { error } = await query;
 
     return !error;
 }

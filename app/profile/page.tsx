@@ -36,6 +36,18 @@ export default function ProfilePage() {
         }
     }, [authLoading, profile, router]);
 
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Cleanup object URL on unmount or change
+        return () => {
+            if (previewUrl && !previewUrl.startsWith('http')) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        };
+    }, [previewUrl]);
+
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -53,10 +65,35 @@ export default function ProfilePage() {
         try {
             if (!profile?.id) throw new Error('Utilisateur non identifié');
 
+            let avatarUrl = profile.avatar_url;
+
+            // 1. Upload Avatar si nouveau fichier sélectionné
+            if (selectedFile) {
+                // Compression
+                const options = {
+                    maxSizeMB: 0.15,
+                    maxWidthOrHeight: 400,
+                    useWebWorker: true,
+                };
+                const compressedFile = await imageCompression(selectedFile, options);
+
+                // Upload
+                const uploadFormData = new FormData();
+                uploadFormData.append('file', compressedFile);
+                uploadFormData.append('userId', profile.id);
+
+                const result = await uploadAvatarAction(uploadFormData);
+                if (!result?.success || !result.publicUrl) throw new Error("Échec de l'envoi de l'image");
+
+                avatarUrl = result.publicUrl;
+            }
+
+            // 2. Mise à jour du profil complet
             const res = await adminUpdateProfile(profile.id, {
                 fullName: formData.fullName,
                 email: formData.email,
-                password: formData.password || undefined
+                password: formData.password || undefined,
+                avatar_url: avatarUrl
             });
 
             if (!res.success) {
@@ -64,11 +101,9 @@ export default function ProfilePage() {
                 return;
             }
 
-            // Rafraîchir la session locale
-            await authService.refreshSession();
-
             showStatus('Profil mis à jour avec succès !');
             setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+            setSelectedFile(null); // Reset selection
         } catch (err: any) {
             showStatus(err.message || 'Erreur lors de la mise à jour.', true);
         } finally {
@@ -76,42 +111,14 @@ export default function ProfilePage() {
         }
     };
 
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file || !profile?.id) return;
+        if (!file) return;
 
-        setLoading(true);
-        try {
-            // 1. Compression
-            const options = {
-                maxSizeMB: 0.15,
-                maxWidthOrHeight: 400,
-                useWebWorker: true,
-            };
-            const compressedFile = await imageCompression(file, options);
-
-            // 2. Upload via Server Action
-            const formData = new FormData();
-            formData.append('file', compressedFile);
-            formData.append('userId', profile.id);
-
-            const result = await uploadAvatarAction(formData);
-            if (!result?.success || !result.publicUrl) throw new Error("Échec de l'envoi");
-
-            // 3. Update Profile
-            const updateRes = await adminUpdateProfile(profile.id, { avatar_url: result.publicUrl });
-            if (!updateRes.success) {
-                showStatus(updateRes.error || "Erreur lors de la mise à jour du profil", true);
-                return;
-            }
-            await authService.refreshSession();
-
-            showStatus('Photo de profil mise à jour !');
-        } catch (err: any) {
-            showStatus(err.message || "Erreur lors de l'envoi", true);
-        } finally {
-            setLoading(false);
-        }
+        // Créer un aperçu local immédiat
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewUrl(objectUrl);
+        setSelectedFile(file);
     };
 
     const showStatus = (msg: string, isError = false) => {
@@ -146,8 +153,12 @@ export default function ProfilePage() {
 
                     <div className={styles.avatarSection}>
                         <div className={styles.avatarWrapper}>
-                            {profile.avatar_url ? (
-                                <img src={profile.avatar_url} alt="Avatar" className={styles.avatar} />
+                            {previewUrl || profile.avatar_url ? (
+                                <img
+                                    src={previewUrl || profile.avatar_url || ''}
+                                    alt="Avatar"
+                                    className={styles.avatar}
+                                />
                             ) : (
                                 <div className={styles.avatarPlaceholder}>
                                     {profile.full_name?.[0]?.toUpperCase() || 'U'}

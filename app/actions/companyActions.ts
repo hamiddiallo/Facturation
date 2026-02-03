@@ -1,10 +1,22 @@
 'use server';
 
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { createClient } from '@supabase/supabase-js';
+// import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { Company } from '@/lib/types';
 import { z } from 'zod';
 import { normalizeText, normalizeEmail } from '@/lib/textUtils';
-import { verifyServerSession } from '@/lib/adminActions';
+import { requireAuth, getServerSession } from '@/lib/serverAuth';
+
+// Helper to get Supabase Admin client (bypasses RLS)
+const getSupabaseAdmin = () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    if (!url || !serviceRole) {
+        console.error('CRITICAL: Supabase URL or Service Role Key is missing in ENV');
+    }
+    return createClient(url, serviceRole);
+};
+
 
 // --- SCHEMAS DE VALIDATION ---
 const CompanySchema = z.object({
@@ -41,14 +53,22 @@ const mapCompany = (data: any): Company => ({
 });
 
 export async function getCompaniesAction(): Promise<Company[]> {
-    const session = await verifyServerSession();
-    if (!session) return [];
+    const session = await getServerSession();
+    if (!session) return []; // Retour silencieux si non authentifié
 
-    const { data, error } = await supabaseAdmin
+    const { user, profile } = session;
+    const supabase = getSupabaseAdmin();
+
+    let query = supabase
         .from('companies')
-        .select('*')
-        .eq('user_id', session.id)
-        .order('created_at', { ascending: true });
+        .select('*');
+
+    // Isolation des données : Les admins voient tout, les users voient les leurs
+    if (profile?.role !== 'admin') {
+        query = query.eq('user_id', user.id);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: true });
 
     if (error) {
         console.error('Action getCompanies error:', error.message);
@@ -59,8 +79,7 @@ export async function getCompaniesAction(): Promise<Company[]> {
 }
 
 export async function createCompanyAction(company: Omit<Company, 'id'>): Promise<Company | null> {
-    const session = await verifyServerSession();
-    if (!session) return null;
+    const { user } = await requireAuth();
 
     const validated = CompanySchema.safeParse({
         ...company,
@@ -72,13 +91,18 @@ export async function createCompanyAction(company: Omit<Company, 'id'>): Promise
         registrationNumbers: company.registrationNumbers ? normalizeText(company.registrationNumbers) : company.registrationNumbers
     });
 
-    if (!validated.success) return null;
+    if (!validated.success) {
+        console.error('Validation Error:', validated.error);
+        return null;
+    }
     const clean = validated.data;
 
-    const { data, error } = await supabaseAdmin
+    const supabase = getSupabaseAdmin();
+
+    const { data, error } = await supabase
         .from('companies')
         .insert([{
-            user_id: session.id,
+            user_id: user.id, // Toujours lier au profil actuel
             name: clean.name,
             display_name: clean.displayName,
             business_type: clean.businessType,
@@ -96,34 +120,42 @@ export async function createCompanyAction(company: Omit<Company, 'id'>): Promise
         .select()
         .single();
 
-    if (error) return null;
+    if (error) {
+        console.error('Action createCompany error:', error.message);
+        return null;
+    }
     return mapCompany(data);
 }
 
 export async function updateCompanyAction(id: string, company: Partial<Company>): Promise<Company | null> {
-    const session = await verifyServerSession();
-    if (!session) return null;
+    const { user, profile } = await requireAuth();
+    const supabase = getSupabaseAdmin();
+
+    // Vérifier la propriété avant mise à jour
+    const { data: existing } = await supabase.from('companies').select('user_id').eq('id', id).single();
+    if (!existing || (existing.user_id !== user.id && profile?.role !== 'admin')) {
+        throw new Error('Action non autorisée');
+    }
 
     const updates: any = {};
     if (company.name !== undefined) updates.name = normalizeText(company.name);
     if (company.displayName !== undefined) updates.display_name = normalizeText(company.displayName);
     if (company.businessType !== undefined) updates.business_type = company.businessType;
-    if (company.address !== undefined) updates.address = company.address ? normalizeText(company.address) : company.address;
-    if (company.nif !== undefined) updates.nif = company.nif;
-    if (company.phone !== undefined) updates.phone = company.phone;
-    if (company.email !== undefined) updates.email = company.email ? normalizeEmail(company.email) : company.email;
+    if (company.address !== undefined) updates.address = normalizeText(company.address);
+    if (company.nif !== undefined) updates.nif = normalizeText(company.nif);
+    if (company.phone !== undefined) updates.phone = normalizeText(company.phone);
+    if (company.email !== undefined) updates.email = normalizeEmail(company.email);
     if (company.hasStyledLogo !== undefined) updates.has_styled_logo = company.hasStyledLogo;
-    if (company.registrationNumbers !== undefined) updates.registration_numbers = company.registrationNumbers;
+    if (company.registrationNumbers !== undefined) updates.registration_numbers = normalizeText(company.registrationNumbers);
     if (company.sealImage !== undefined) updates.seal_image = company.sealImage;
     if (company.isDefault !== undefined) updates.is_default = company.isDefault;
     if (company.templateId !== undefined) updates.template_id = company.templateId;
     if (company.markupPercentage !== undefined) updates.markup_percentage = company.markupPercentage;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
         .from('companies')
         .update(updates)
         .eq('id', id)
-        .eq('user_id', session.id)
         .select()
         .single();
 
@@ -132,27 +164,57 @@ export async function updateCompanyAction(id: string, company: Partial<Company>)
 }
 
 export async function deleteCompanyAction(id: string): Promise<boolean> {
-    const session = await verifyServerSession();
-    if (!session) return false;
+    const { user, profile } = await requireAuth();
+    const supabase = getSupabaseAdmin();
 
-    const { error } = await supabaseAdmin
-        .from('companies')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', session.id);
+    let query = supabase.from('companies').delete().eq('id', id);
 
+    if (profile?.role !== 'admin') {
+        query = query.eq('user_id', user.id);
+    }
+
+    const { error } = await query;
     return !error;
 }
 
 export async function setDefaultCompanyAction(companyId: string): Promise<boolean> {
-    const session = await verifyServerSession();
-    if (!session) return false;
+    const { user, profile } = await requireAuth();
+    const supabase = getSupabaseAdmin();
 
-    // 1. Décocher toutes les autres
-    await supabaseAdmin.from('companies').update({ is_default: false }).eq('user_id', session.id);
+    try {
+        const { data: targetCompany, error: fetchError } = await supabase
+            .from('companies')
+            .select('user_id')
+            .eq('id', companyId)
+            .single();
 
-    // 2. Cocher la nouvelle
-    const { error } = await supabaseAdmin.from('companies').update({ is_default: true }).eq('id', companyId).eq('user_id', session.id);
+        if (fetchError || !targetCompany) return false;
 
-    return !error;
+        // Sécurité: Un utilisateur ne peut modifier que ses propres préférences
+        if (targetCompany.user_id !== user.id && profile?.role !== 'admin') {
+            console.error('Unauthorized attempt to set default company');
+            return false;
+        }
+
+        const userId = targetCompany.user_id;
+
+        // Décocher toutes les entreprises de cet utilisateur
+        const { error: resetError } = await supabase
+            .from('companies')
+            .update({ is_default: false })
+            .eq('user_id', userId);
+
+        if (resetError) return false;
+
+        // Cocher la nouvelle entreprise par défaut
+        const { error: setError } = await supabase
+            .from('companies')
+            .update({ is_default: true })
+            .eq('id', companyId);
+
+        return !setError;
+    } catch (error: any) {
+        console.error('Unexpected error in setDefaultCompanyAction:', error);
+        return false;
+    }
 }
