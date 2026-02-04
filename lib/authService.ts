@@ -42,12 +42,20 @@ export const authService = {
         }
     },
 
-    // Déconnexion
+    // Déconnexion robuste
     async logout() {
-        await supabase.auth.signOut();
-        // Nettoyer aussi le legacy localStorage au cas où
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('app_user_session');
+        try {
+            // On lance le signOut mais on ne bloque pas forcément l'exécution totale
+            // si l'API est trop lente, car on nettoie le local quoi qu'il arrive
+            await supabase.auth.signOut();
+        } catch (e) {
+            console.error('Logout API error:', e);
+        } finally {
+            // Nettoyer systématiquement le localStorage
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('app_user_session');
+                // Optionnel: vider tous les cookies sb-* si nécessaire
+            }
         }
     },
 
@@ -79,5 +87,16 @@ export const authService = {
     async getSession() {
         const { data: { session } } = await supabase.auth.getSession();
         return session;
+    },
+
+    // Vérification rapide de validité (sans appel réseau si possible)
+    async isSessionValid(): Promise<boolean> {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return false;
+
+        // Vérifier si le token expire dans moins de 10 secondes
+        const expiresAt = session.expires_at || 0;
+        const now = Math.floor(Date.now() / 1000);
+        return (expiresAt - now) > 10;
     }
 };

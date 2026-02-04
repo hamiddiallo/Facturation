@@ -18,9 +18,22 @@ export default function SWRConfigContext({ children }: { children: React.ReactNo
                 },
                 revalidateOnFocus: false,
                 dedupingInterval: 10000,
+                onError: (error) => {
+                    // Si on reçoit une erreur 401 ou 403, cela signifie probablement que la session est morte
+                    // On force un rafraîchissement global pour que AuthProvider redirige
+                    if (error?.status === 401 || error?.status === 403 || error?.code === 'refresh_token_not_found') {
+                        console.error('Erreur de session critique détectée via SWR:', error);
+                        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                            window.location.href = '/login';
+                        }
+                    }
+                },
                 onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
-                    // Ne pas réessayer si c'est une erreur 404 ou 403 (identifiants incorrects par ex)
-                    if (error?.status === 404 || error?.status === 403) return;
+                    // Ne pas réessayer si c'est une erreur d'authentification
+                    if (error?.status === 401 || error?.status === 403) return;
+
+                    // Ne pas réessayer si c'est une erreur 404
+                    if (error?.status === 404) return;
 
                     // Limiter à 5 tentatives
                     if (retryCount >= 5) return;

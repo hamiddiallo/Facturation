@@ -1,0 +1,17 @@
+{
+    "name": "Master Facturation",
+    "short_name": "Master",
+    "description": "Générateur de Factures professionnel",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#001f3f",
+    "icons": [
+        {
+            "src": "/icon.png",
+            "sizes": "1024x1024",
+            "type": "image/jpeg",
+            "purpose": "any maskable"
+        }
+    ]
+}

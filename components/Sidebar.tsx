@@ -18,14 +18,9 @@ export default function Sidebar() {
     const toggleSidebar = () => setIsOpen(!isOpen);
     const closeSidebar = () => setIsOpen(false);
 
-    const prefetchHistory = () => {
-        // Précharger la première page de l'historique (correspond à la clé SWR utilisée dans HistoryPage)
-        preload(['invoices', 0], () => getInvoicesCloud(0, 20));
-    };
-
     const navItems = [
         { label: 'Facturer', path: '/', icon: '📝' },
-        { label: 'Historique', path: '/history', icon: '📜', onMouseEnter: prefetchHistory },
+        { label: 'Historique', path: '/history', icon: '📜', prefetch: false },
         { label: 'Profil', path: '/profile', icon: '👤' },
         { label: 'Paramètres', path: '/settings', icon: '⚙️', adminOnly: true },
     ];
@@ -74,7 +69,7 @@ export default function Sidebar() {
                             href={item.path}
                             className={`${styles.navLink} ${pathname === item.path ? styles.activeLink : ''}`}
                             onClick={closeSidebar}
-                            onMouseEnter={item.onMouseEnter}
+                            prefetch={item.prefetch}
                         >
                             <span>{item.icon}</span>
                             <span>{item.label}</span>
