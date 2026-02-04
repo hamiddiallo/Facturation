@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import { Company, Article, InvoiceData, InvoiceType } from '@/lib/types';
@@ -27,6 +27,7 @@ export default function InvoiceForm() {
     const [invoiceDate, setInvoiceDate] = useState(
         new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     );
+    const invoiceNumberRef = useRef<HTMLInputElement>(null);
     const [articles, setArticles] = useState<Article[]>([
         { designation: '', quantity: 1, unit: '', price: 0, totalPrice: 0, delivered: false },
     ]);
@@ -134,6 +135,14 @@ export default function InvoiceForm() {
             return;
         }
 
+        if (!invoiceNumber || invoiceNumber.trim() === '') {
+            toast.error("Numéro de facture manquant", {
+                description: "Veuillez saisir un numéro de facture ou utiliser le bouton 🎲 pour en générer un."
+            });
+            invoiceNumberRef.current?.focus();
+            return;
+        }
+
         const invoiceData: InvoiceData = {
             client: { nom: clientNom, adresse: clientAdresse },
             numeroFacture: invoiceNumber, // Numéro réservé par le bouton dé
@@ -231,9 +240,10 @@ export default function InvoiceForm() {
                             </select>
                         </div>
                         <div className={styles.field}>
-                            <label className={styles.label}>N° Facture</label>
+                            <label className={styles.label}>N° Facture *</label>
                             <div className={styles.inputGroup}>
                                 <input
+                                    ref={invoiceNumberRef}
                                     type="text"
                                     value={invoiceNumber}
                                     onChange={(e) => setInvoiceNumber(e.target.value)}
