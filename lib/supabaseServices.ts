@@ -11,7 +11,8 @@ import {
     saveInvoiceCloudAction,
     deleteInvoiceCloudAction,
     getNextSequenceCloudAction,
-    generateInvoiceNumberAtomicAction
+    generateInvoiceNumberAtomicAction,
+    getDashboardStatsAction
 } from '@/app/actions/invoiceActions';
 
 /**
@@ -61,4 +62,8 @@ export const getNextSequenceCloud = async (dateStr: string | Date = new Date()):
 
 export const deleteInvoiceCloud = async (id: string): Promise<boolean> => {
     return await deleteInvoiceCloudAction(id);
+};
+
+export const getDashboardStats = async (): Promise<any> => {
+    return await getDashboardStatsAction();
 };

@@ -19,6 +19,7 @@ export default function Sidebar() {
     const closeSidebar = () => setIsOpen(false);
 
     const navItems = [
+        { label: 'Dashboard', path: '/dashboard', icon: '📊', adminOnly: true },
         { label: 'Facturer', path: '/', icon: '📝' },
         { label: 'Historique', path: '/history', icon: '📜', prefetch: false },
         { label: 'Profil', path: '/profile', icon: '👤' },

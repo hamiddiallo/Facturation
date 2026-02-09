@@ -67,6 +67,13 @@ export default function SettingsPage() {
                 router.push('/');
                 return;
             }
+
+            // Gestion de l'onglet par défaut via URL
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get('tab') as MainTab;
+            if (tab && ['companies', 'users', 'backup'].includes(tab)) {
+                setMainTab(tab);
+            }
         } else if (!authLoading && !profile) {
             router.push('/login');
         }

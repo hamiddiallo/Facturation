@@ -7,6 +7,11 @@ import { z } from 'zod';
 import { normalizeText } from '@/lib/textUtils';
 import { getCounterName, formatBaseInvoiceNumber } from '@/lib/counter';
 import { requireAuth, getServerSession } from '@/lib/serverAuth';
+import {
+    initializeWeeklyMap,
+    aggregateInvoicesByWeek,
+    calculateFinancialMetrics
+} from '@/lib/dashboardUtils';
 
 // Helper to get Supabase Admin client (bypasses RLS)
 const getSupabaseAdmin = () => {
@@ -141,6 +146,10 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
             }
         }
 
+        // Conversion DD/MM/YYYY -> YYYY-MM-DD pour le backend
+        const [d, m, y] = clean.dateFacture.split('/');
+        const isoDate = `${y}-${m}-${d}`;
+
         // Appel de la fonction RPC atomique
         const { data: invoiceId, error: rpcError } = await supabase.rpc('upsert_full_invoice', {
             p_user_id: user.id, // Utiliser l'ID de la session serveur
@@ -148,7 +157,7 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
             p_id: existingInv?.id || null,
             p_number: clean.numeroFacture,
             p_type: clean.type,
-            p_date: new Date().toISOString().split('T')[0], // Format YYYY-MM-DD
+            p_date: isoDate,
             p_client_name: clean.client.nom,
             p_client_address: clean.client.adresse || '',
             p_amount_paid: clean.amountPaid || 0,
@@ -215,4 +224,101 @@ export async function deleteInvoiceCloudAction(id: string): Promise<boolean> {
     const { error } = await query;
 
     return !error;
+}
+
+export async function getDashboardStatsAction(): Promise<any> {
+    const session = await getServerSession();
+    if (!session) return null;
+
+    const { user, profile } = session;
+    const supabase = getSupabaseAdmin();
+    const isAdmin = profile?.role === 'admin';
+
+    // 1. Totaux globaux (Calculés à partir d'une sélection standard pour compatibilité)
+    let statsQuery = supabase.from('invoices').select('total_amount, amount_paid');
+    if (!isAdmin) statsQuery = statsQuery.eq('user_id', user.id);
+    const { data: globalData, error: globalError } = await statsQuery;
+    if (globalError) throw globalError;
+
+    const totalInvoices = globalData?.length || 0;
+    const totalCA = globalData?.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0) || 0;
+    const totalPaid = globalData?.reduce((sum, inv) => sum + Number(inv.amount_paid || 0), 0) || 0;
+    const totalOutstanding = totalCA - totalPaid;
+    const { averageBasket, recoveryRate } = calculateFinancialMetrics(totalCA, totalInvoices, totalPaid);
+
+    // 2. Évolution Hebdomadaire (5 dernières semaines uniquement)
+    const now = new Date();
+    const fiveWeeksAgo = new Date(now.getTime() - (5 * 7 * 24 * 60 * 60 * 1000));
+
+    let trendQuery = supabase
+        .from('invoices')
+        .select('total_amount, created_at, date')
+        .gte('date', fiveWeeksAgo.toISOString().split('T')[0]);
+    if (!isAdmin) trendQuery = trendQuery.eq('user_id', user.id);
+
+    const { data: trendInvoices } = await trendQuery;
+
+    const weeklyMap = initializeWeeklyMap(now);
+    const monthlyStats = aggregateInvoicesByWeek(trendInvoices || [], weeklyMap);
+
+    // 3. Top Clients (Toujours besoin des noms, mais on peut limiter)
+    let clientQuery = supabase.from('invoices').select('client_name, total_amount');
+    if (!isAdmin) clientQuery = clientQuery.eq('user_id', user.id);
+    // Note: Pour de très gros volumes, ceci devrait être un RPC group by
+    const { data: allInvoicesForClients } = await clientQuery;
+
+    const clientMap = new Map<string, number>();
+    allInvoicesForClients?.forEach(inv => {
+        clientMap.set(inv.client_name, (clientMap.get(inv.client_name) || 0) + Number(inv.total_amount || 0));
+    });
+    const topClients = Array.from(clientMap.entries())
+        .map(([name, ca]) => ({ name, ca }))
+        .sort((a, b) => b.ca - a.ca)
+        .slice(0, 5);
+    const uniqueClients = clientMap.size;
+
+    // 4. Statistiques Articles
+    let itemQuery = supabase.from('invoice_items').select('designation, quantity, unit');
+    if (!isAdmin) {
+        // Limitation aux articles de l'utilisateur
+        const { data: userInvoices } = await supabase.from('invoices').select('id').eq('user_id', user.id);
+        const ids = userInvoices?.map(i => i.id) || [];
+        itemQuery = itemQuery.in('invoice_id', ids);
+    }
+    const { data: items } = await itemQuery;
+
+    const articleMap = new Map<string, { designation: string, quantity: number, unit: string }>();
+    items?.forEach(it => {
+        const key = `${it.designation}|${it.unit || ''}`;
+        const current = articleMap.get(key) || { designation: it.designation, quantity: 0, unit: it.unit || '-' };
+        current.quantity += it.quantity;
+        articleMap.set(key, current);
+    });
+    const uniqueArticlesList = Array.from(articleMap.values()).sort((a, b) => b.quantity - a.quantity);
+
+    // 5. Comptes divers
+    let companyQuery = supabase.from('companies').select('id', { count: 'exact', head: true });
+    if (!isAdmin) companyQuery = companyQuery.eq('user_id', user.id);
+    const { count: companiesCount } = await companyQuery;
+
+    let usersCount = 0;
+    if (isAdmin) {
+        const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true });
+        usersCount = count || 0;
+    }
+
+    return {
+        totalInvoices,
+        uniqueClients,
+        uniqueArticles: uniqueArticlesList.length,
+        uniqueArticlesList,
+        companiesCount: companiesCount || 0,
+        usersCount,
+        totalCA,
+        totalOutstanding,
+        averageBasket,
+        recoveryRate,
+        topClients,
+        monthlyStats: Array.from(weeklyMap.values())
+    };
 }
