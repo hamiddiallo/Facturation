@@ -169,8 +169,8 @@ export default function InvoiceForm() {
                     totalFacture
                 );
 
-                if (!result) {
-                    throw new Error("Échec de la sauvegarde Cloud");
+                if (!result || !result.success) {
+                    throw new Error(result?.error || "Échec de la sauvegarde Cloud");
                 }
 
 

@@ -43,7 +43,7 @@ export const deleteCompany = async (id: string): Promise<boolean> => {
 
 // --- SERVICES FACTURES ---
 
-export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, totalAmount: number): Promise<string | null> => {
+export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, totalAmount: number): Promise<{ success: boolean; id?: string; error?: string } | null> => {
     // Plus besoin de gérer le userId ici, c'est géré par requireAuth() dans l'action serveur
     return await saveInvoiceCloudAction(invoice, companyId, totalAmount);
 };

@@ -13,6 +13,19 @@ import {
     calculateFinancialMetrics
 } from '@/lib/dashboardUtils';
 
+/**
+ * Parse une date de format DD/MM/YYYY ou YYYY-MM-DD vers un objet Date valide.
+ */
+function parseInvoiceDate(dateStr: string): Date {
+    // Si c'est déjà du format ISO (YYYY-MM-DD)
+    if (dateStr.includes('-')) {
+        return new Date(dateStr);
+    }
+    // Sinon on assume DD/MM/YYYY
+    const [d, m, y] = dateStr.split('/');
+    return new Date(`${y}-${m}-${d}`);
+}
+
 // Helper to get Supabase Admin client (bypasses RLS)
 const getSupabaseAdmin = () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -80,9 +93,20 @@ export async function generateInvoiceNumberAtomicAction(dateStr: string | Date =
     return data;
 }
 
-export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: string, totalAmount: number): Promise<string | null> {
+export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: string, totalAmount: number): Promise<{ success: boolean; id?: string; error?: string } | null> {
     const { user } = await requireAuth();
     const supabase = getSupabaseAdmin();
+
+    // --- B. EXTRACTION DU COMPTEUR POUR MISE À JOUR ATOMIQUE ---
+    let counterName: string | null = null;
+    let newSequence: number | null = null;
+
+    // Filtrage des articles : on ignore les lignes totalement vides
+    const activeArticles = invoice.articles.filter(art => art.designation.trim() !== '');
+
+    if (activeArticles.length === 0) {
+        return { success: false, error: "La facture doit contenir au moins un article avec une désignation." };
+    }
 
     const validated = InvoiceSchema.safeParse({
         ...invoice,
@@ -90,7 +114,7 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
             nom: normalizeText(invoice.client.nom),
             adresse: normalizeText(invoice.client.adresse)
         },
-        articles: invoice.articles.map(art => ({
+        articles: activeArticles.map(art => ({
             ...art,
             designation: normalizeText(art.designation)
         }))
@@ -98,7 +122,11 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
 
     if (!validated.success) {
         console.error('Validation Error:', validated.error);
-        return null;
+        const firstError = validated.error.issues[0];
+        return {
+            success: false,
+            error: `Erreur de validation : ${firstError.path.join('.')} - ${firstError.message}`
+        };
     }
     const clean = validated.data;
 
@@ -127,32 +155,23 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
             total_price: art.totalPrice
         }));
 
-        // --- B. EXTRACTION DU COMPTEUR POUR MISE À JOUR ATOMIQUE ---
-        let counterName = null;
-        let newSequence = null;
-
         if (!existingInv) { // Seulement en création
             const sequenceMatch = clean.numeroFacture.match(/-(\d+)$/);
             if (sequenceMatch) {
                 newSequence = parseInt(sequenceMatch[1], 10);
 
-                const [day, month, year] = clean.dateFacture.split('/');
-                if (day && month && year) {
-                    const dateObj = new Date(`${year}-${month}-${day}`);
-                    counterName = getCounterName(dateObj);
-                } else {
-                    counterName = getCounterName(new Date());
-                }
+                const dateObj = parseInvoiceDate(clean.dateFacture);
+                counterName = getCounterName(dateObj);
             }
         }
 
-        // Conversion DD/MM/YYYY -> YYYY-MM-DD pour le backend
-        const [d, m, y] = clean.dateFacture.split('/');
-        const isoDate = `${y}-${m}-${d}`;
+        // Conversion vers format ISO pour Postgres
+        const dateObj = parseInvoiceDate(clean.dateFacture);
+        const isoDate = dateObj.toISOString().split('T')[0];
 
-        // Appel de la fonction RPC atomique
+        // Appel de la fonction RPC atomique mise à jour
         const { data: invoiceId, error: rpcError } = await supabase.rpc('upsert_full_invoice', {
-            p_user_id: user.id, // Utiliser l'ID de la session serveur
+            p_user_id: user.id,
             p_company_id: companyId,
             p_id: existingInv?.id || null,
             p_number: clean.numeroFacture,
@@ -164,15 +183,19 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
             p_total_amount: totalAmount,
             p_articles: jsonArticles,
             p_counter_name: counterName,
-            p_new_sequence: newSequence
+            p_new_sequence: newSequence,
+            p_template_id: invoice.selectedCompany.templateId || 'template_standard' // Ajout du template
         });
 
-        if (rpcError) throw rpcError;
+        if (rpcError) {
+            console.error('RPC Error:', rpcError);
+            return { success: false, error: `Erreur base de données: ${rpcError.message}` };
+        }
 
-        return invoiceId;
+        return { success: true, id: invoiceId };
     } catch (error: any) {
         console.error('Action saveInvoiceCloud error:', error.message);
-        return null;
+        return { success: false, error: error.message || "Une erreur inattendue est survenue lors de la sauvegarde." };
     }
 }
 
