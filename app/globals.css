@@ -107,3 +107,44 @@ button {
     font-size: 16px !important;
   }
 }
+
+/* ─── PWA Standalone Mode Optimizations ──────────────────────────────────── */
+
+/* Supprimer le délai de 300ms sur les taps (iOS/Android) */
+* {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe areas : évite que le contenu soit caché sous l'encoche ou la barre du bas */
+.mainLayout {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Header mobile : pousse sous la status bar en standalone */
+@media all and (display-mode: standalone) {
+  /* Empêche le pull-to-refresh natif du navigateur (évite les rechargements accidentels) */
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  /* Scrolling fluide avec momentum iOS */
+  .contentWrapper,
+  main {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Safe area bottom pour les boutons flottants / navigations fixes */
+  .footerSafeArea {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Smooth scroll global */
+html {
+  scroll-behavior: smooth;
+}

@@ -2,16 +2,62 @@
     "name": "Master Facturation",
     "short_name": "Master",
     "description": "Générateur de Factures professionnel",
-    "start_url": "/",
+    "start_url": "/?source=pwa",
+    "scope": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
+    "orientation": "portrait",
+    "background_color": "#f7fafc",
     "theme_color": "#001f3f",
+    "lang": "fr",
     "icons": [
         {
             "src": "/icon.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icon.png",
             "sizes": "1024x1024",
-            "type": "image/jpeg",
-            "purpose": "any maskable"
+            "type": "image/png",
+            "purpose": "maskable"
         }
+    ],
+    "shortcuts": [
+        {
+            "name": "Nouvelle Facture",
+            "short_name": "Facture",
+            "description": "Créer une nouvelle facture",
+            "url": "/?source=pwa",
+            "icons": [
+                {
+                    "src": "/icon.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Historique",
+            "short_name": "Historique",
+            "description": "Voir les factures précédentes",
+            "url": "/history?source=pwa",
+            "icons": [
+                {
+                    "src": "/icon.png",
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ],
+    "categories": [
+        "business",
+        "finance",
+        "productivity"
     ]
 }

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { authService, UserProfile } from '@/lib/authService';
 import { supabase } from '@/lib/supabase';
+import { checkSessionAction } from '@/app/actions/sessionActions';
 
 const AuthContext = createContext<{
     profile: UserProfile | null;
@@ -22,81 +23,147 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const [loading, setLoading] = useState(true);
     const router = useRouter();
     const pathname = usePathname();
+    // Ref so long-lived callbacks always read the current pathname
+    const pathnameRef = useRef(pathname);
+    pathnameRef.current = pathname;
 
+    // ─── Effect 1: Auth subscription + Watchdog (mounted ONCE) ─────────────────
     useEffect(() => {
-        // Vérification initiale
-        authService.getCurrentUser().then(user => {
-            setProfile(user);
-            setLoading(false);
+        let isMounted = true;
 
-            if (!user && pathname !== '/login') {
-                router.push('/login');
+        /**
+         * Fetch the full profile from Supabase given an auth session.
+         * Returns null if the profile is inactive or not found.
+         */
+        const fetchProfile = async (): Promise<UserProfile | null> => {
+            try {
+                return await authService.getCurrentUser();
+            } catch {
+                return null;
             }
-        });
+        };
 
-        // Écouter les changements d'état d'authentification
+        // ── Auth state listener (INITIAL_SESSION is the primary auth check) ────
+        // INITIAL_SESSION fires immediately on mount from localStorage — no network.
+        // Using it avoids a separate getCurrentUser() call with fragile timeouts.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                console.log('Auth event:', event, 'Session:', session ? 'exists' : 'null');
+                if (!isMounted) return;
+                console.log('Auth event:', event, session ? '(session)' : '(no session)');
 
-                if (event === 'INITIAL_SESSION') return;
+                if (event === 'INITIAL_SESSION') {
+                    if (session) {
+                        // Valid session found locally — fetch profile (one network call)
+                        const user = await fetchProfile();
+                        if (!isMounted) return;
+                        setProfile(user);
+                        setLoading(false);
+                        if (!user && pathnameRef.current !== '/login') {
+                            router.replace('/login');
+                        }
+                    } else {
+                        // No session at all
+                        setProfile(null);
+                        setLoading(false);
+                        if (pathnameRef.current !== '/login') router.replace('/login');
+                    }
+                    return;
+                }
 
-                if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+                if (event === 'SIGNED_OUT') {
                     setProfile(null);
-                    if (pathname !== '/login') router.push('/login');
+                    setLoading(false);
+                    if (pathnameRef.current !== '/login') router.replace('/login');
                 } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                    const user = await authService.getCurrentUser();
+                    const user = await fetchProfile();
+                    if (!isMounted) return;
                     setProfile(user);
-                    if (!user && pathname !== '/login') router.push('/login');
+                    setLoading(false);
+                    if (!user && pathnameRef.current !== '/login') router.replace('/login');
+                } else if (event === 'USER_UPDATED') {
+                    // Only refresh profile — do NOT sign out
+                    const user = await fetchProfile();
+                    if (isMounted) setProfile(user);
                 }
             }
         );
 
-        // Watchdog : Vérification proactive toutes les 2 minutes
-        const watchdog = setInterval(async () => {
-            if (pathname === '/login') return;
-            const isValid = await authService.isSessionValid();
-            if (!isValid) {
-                console.warn('Session expirée détectée par le Watchdog');
-                setProfile(null);
-                router.push('/login');
+        // ── Session check helper (used by watchdog + visibility listener) ──────
+        // Verification goes through the server via httpOnly cookies, not localStorage
+        const checkSession = async () => {
+            if (pathnameRef.current === '/login') return;
+
+            // Skip when offline — httpOnly cookie session remains valid locally
+            if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                console.info('Session check: device offline, skipping.');
+                return;
             }
-        }, 120000); // 2 minutes
+
+            // Server-side check via httpOnly cookie (not localStorage)
+            const result = await checkSessionAction();
+            if (!result.valid) {
+                console.warn('Session check: server reports session invalid.');
+                // Attempt a client-side token refresh before giving up
+                const { error } = await supabase.auth.refreshSession();
+                if (error) {
+                    console.error('Session check: silent refresh failed, redirecting.', error);
+                    if (isMounted) { setProfile(null); router.replace('/login'); }
+                } else {
+                    console.info('Session check: token refreshed silently.');
+                }
+            }
+        };
+
+        // ── Watchdog: every 5 minutes, offline-safe ────────────────────────────
+        const watchdog = setInterval(checkSession, 5 * 60 * 1000);
+
+        // ── Visibility change: fires when user returns to the app ─────────────
+        // Primary fix for "idle then crash/freeze" in standalone PWA mode
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                checkSession();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
+            isMounted = false;
             subscription.unsubscribe();
             clearInterval(watchdog);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [pathname, router]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Intentionally empty — pathnameRef tracks current route
 
+    // ─── Effect 2: Routing guard ───────────────────────────────────────────────
+    useEffect(() => {
+        if (!loading && !profile && pathname !== '/login') {
+            router.replace('/login');
+        }
+    }, [loading, profile, pathname, router]);
+
+    // ─── Sign out ─────────────────────────────────────────────────────────────
     const signOut = async () => {
-        console.log('🚪 Déclenchement déconnexion Master...');
+        console.log('🚪 Déconnexion...');
 
-        // 1. Mise à jour immédiate de l'état local (UI instantanée)
         setProfile(null);
         if (typeof window !== 'undefined') {
             localStorage.removeItem('app_user_session');
         }
 
         try {
-            // 2. Tentative de déconnexion API (timeout 5s)
-            // On utilise Promise.race pour ne pas bloquer l'utilisateur si le réseau est lent
             await Promise.race([
                 authService.logout(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_API_LOGOUT')), 5000))
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('TIMEOUT_API_LOGOUT')), 5000)
+                )
             ]);
             console.log('✅ Déconnexion API réussie.');
         } catch (error: any) {
-            if (error.message === 'TIMEOUT_API_LOGOUT') {
-                console.warn('ℹ️ Déconnexion API trop lente (5s+) : Session locale nettoyée par précaution.');
-            } else {
-                console.warn('⚠️ Erreur déconnexion API (ignorée car locale OK):', error);
-            }
+            console.warn('⚠️ Erreur déconnexion:', error.message);
         } finally {
-            // 3. Redirection finale
-            console.log('🏠 Redirection vers /login...');
-            router.refresh();
-            router.push('/login');
+            // No router.refresh() — it freezes standalone PWA on slow networks
+            router.replace('/login');
         }
     };
 

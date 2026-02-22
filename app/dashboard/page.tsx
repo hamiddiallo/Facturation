@@ -7,6 +7,7 @@ import { getDashboardStats } from '@/lib/supabaseServices';
 import { useAuth } from '@/components/AuthProvider';
 import Modal from '@/components/Modal';
 import styles from './page.module.css';
+import { Eye, EyeOff } from 'lucide-react';
 
 // Composants Mémoïsés pour la performance
 const StatCard = React.memo(({ label, value, icon, target, extraClass, onClick, isLoading, router }: any) => (
@@ -31,7 +32,7 @@ const StatCard = React.memo(({ label, value, icon, target, extraClass, onClick, 
 ));
 StatCard.displayName = 'StatCard';
 
-const WeeklyTrendChart = React.memo(({ stats, formatCurrency }: any) => {
+const WeeklyTrendChart = React.memo(({ stats, formatCurrency, showAmounts }: any) => {
     const chartData = React.useMemo(() => {
         if (!stats?.monthlyStats) return [];
         const maxCA = Math.max(...(stats.monthlyStats.map((ms: any) => Number(ms.ca)) || [0]), 1);
@@ -49,12 +50,12 @@ const WeeklyTrendChart = React.memo(({ stats, formatCurrency }: any) => {
         <div className={styles.chartContainer} style={{ flexWrap: 'nowrap' }}>
             {chartData.map((m: any, i: number) => (
                 <div key={i} className={styles.barWrapper}>
-                    <span className={styles.barValue}>{formatCurrency(m.ca)}</span>
+                    <span className={styles.barValue}>{showAmounts ? formatCurrency(m.ca) : '••••'}</span>
                     <div className={styles.barArea}>
                         <div
                             className={styles.bar}
                             style={{ height: `${m.height}%` }}
-                            title={`${m.label}: ${formatCurrency(m.ca)}`}
+                            title={showAmounts ? `${m.label}: ${formatCurrency(m.ca)}` : m.label}
                         />
                     </div>
                     <span className={styles.barLabel}>{m.label}</span>
@@ -65,12 +66,12 @@ const WeeklyTrendChart = React.memo(({ stats, formatCurrency }: any) => {
 });
 WeeklyTrendChart.displayName = 'WeeklyTrendChart';
 
-const TopClientsList = React.memo(({ stats, formatCurrency }: any) => (
+const TopClientsList = React.memo(({ stats, formatCurrency, showAmounts }: any) => (
     <div className={styles.clientList}>
         {stats?.topClients?.map((c: any, i: number) => (
             <div key={i} className={styles.clientItem}>
                 <span className={styles.clientName}>{c.name}</span>
-                <span className={styles.clientCA}>{formatCurrency(c.ca)}</span>
+                <span className={styles.clientCA}>{showAmounts ? formatCurrency(c.ca) : '••••••••'}</span>
             </div>
         ))}
         {(!stats?.topClients || stats.topClients.length === 0) && (
@@ -108,6 +109,29 @@ export default function DashboardPage() {
         }).format(amount);
     }, []);
 
+    const [showAmounts, setShowAmounts] = useState(false);
+
+    const toggleAmounts = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setShowAmounts(prev => !prev);
+    };
+
+    const MaskedAmount = ({ amount, withToggle = false }: { amount: string, withToggle?: boolean }) => (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+            {showAmounts ? amount : '••••••••'}
+            {withToggle && (
+                <button
+                    onClick={toggleAmounts}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0, color: 'inherit', opacity: 0.7 }}
+                    title={showAmounts ? "Masquer les montants" : "Afficher les montants"}
+                >
+                    {showAmounts ? <EyeOff size={24} /> : <Eye size={24} />}
+                </button>
+            )}
+        </span>
+    );
+
     if (authLoading || (profile && profile.role !== 'admin')) {
         return <div className={styles.container} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Chargement...</div>;
     }
@@ -136,7 +160,7 @@ export default function DashboardPage() {
                 {/* Financier Principal */}
                 <StatCard
                     label="Chiffre d'Affaires"
-                    value={formatCurrency(stats?.totalCA || 0)}
+                    value={<MaskedAmount amount={formatCurrency(stats?.totalCA || 0)} withToggle />}
                     icon="💰"
                     target="/history"
                     extraClass="caCard"
@@ -147,7 +171,7 @@ export default function DashboardPage() {
                 {/* Métriques de Performance */}
                 <StatCard
                     label="Panier Moyen"
-                    value={formatCurrency(stats?.averageBasket || 0)}
+                    value={<MaskedAmount amount={formatCurrency(stats?.averageBasket || 0)} />}
                     icon="🛒"
                     isLoading={isLoading}
                 />
@@ -194,13 +218,13 @@ export default function DashboardPage() {
                 {/* Évolution Hebdomadaire */}
                 <div className={styles.trendSection}>
                     <div className={styles.sectionTitle}>📈 Évolution Hebdomadaire (CA)</div>
-                    <WeeklyTrendChart stats={stats} formatCurrency={formatCurrency} />
+                    <WeeklyTrendChart stats={stats} formatCurrency={formatCurrency} showAmounts={showAmounts} />
                 </div>
 
                 {/* Top Clients */}
                 <div className={styles.topClientsSection}>
                     <div className={styles.sectionTitle}>🏆 Top 5 Clients</div>
-                    <TopClientsList stats={stats} formatCurrency={formatCurrency} />
+                    <TopClientsList stats={stats} formatCurrency={formatCurrency} showAmounts={showAmounts} />
                 </div>
             </div>
 
