@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
-import { getInvoicesCloud, deleteInvoiceCloud } from '@/lib/supabaseServices';
+import { getInvoicesCloud, deleteInvoiceCloud, getInvoicesTotalCount } from '@/lib/supabaseServices';
 import { saveInvoiceData } from '@/lib/storage';
 import { InvoiceType } from '@/lib/types';
 import { toast } from 'sonner';
@@ -21,6 +21,8 @@ export default function HistoryPage() {
 
     // SWR Data Fetching - Key includes page to trigger re-fetch
     const { data: invoices = [], isLoading: isLoadingInvoices, mutate } = useSWR(['invoices', currentPage], () => getInvoicesCloud(currentPage, pageSize));
+    // Total count (server-side, not paginated)
+    const { data: totalCount = 0 } = useSWR('invoices_total_count', getInvoicesTotalCount);
 
     const [internalLoading, setInternalLoading] = useState(false);
     const loading = isLoadingInvoices || internalLoading;
@@ -221,7 +223,12 @@ export default function HistoryPage() {
                     ) : (
                         <>
                             <div className={styles.tableCounter}>
-                                <strong>{filteredInvoices.length}</strong> facture(s) trouvée(s)
+                                <strong>{filteredInvoices.length}</strong> facture(s) sur cette page
+                                {totalCount > 0 && (
+                                    <span style={{ marginLeft: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.9em' }}>
+                                        · <strong>{totalCount}</strong> au total
+                                    </span>
+                                )}
                             </div>
                             {filteredInvoices.length === 0 ? (
                                 <div className={styles.emptyState}>

@@ -31,13 +31,18 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     useEffect(() => {
         let isMounted = true;
 
+        const FETCH_TIMEOUT_MS = 6000;
+
         /**
-         * Fetch the full profile from Supabase given an auth session.
-         * Returns null if the profile is inactive or not found.
+         * Fetch profile with a timeout to prevent infinite loading screen.
+         * If Supabase is slow/unreachable the app falls back to login instead of hanging.
          */
         const fetchProfile = async (): Promise<UserProfile | null> => {
             try {
-                return await authService.getCurrentUser();
+                const timeout = new Promise<null>(resolve =>
+                    setTimeout(() => resolve(null), FETCH_TIMEOUT_MS)
+                );
+                return await Promise.race([authService.getCurrentUser(), timeout]);
             } catch {
                 return null;
             }

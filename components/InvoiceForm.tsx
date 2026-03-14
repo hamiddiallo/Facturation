@@ -25,7 +25,7 @@ export default function InvoiceForm() {
     const [clientAdresse, setClientAdresse] = useState('');
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const [invoiceDate, setInvoiceDate] = useState(
-        new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        new Date().toISOString().split('T')[0] // YYYY-MM-DD (required by type="date")
     );
     const invoiceNumberRef = useRef<HTMLInputElement>(null);
     const [articles, setArticles] = useState<Article[]>([
@@ -51,7 +51,12 @@ export default function InvoiceForm() {
                 if (data.numeroFacture) {
                     setInvoiceNumber(data.numeroFacture);
                 }
-                setInvoiceDate(data.dateFacture);
+                // Normalize date to ISO (YYYY-MM-DD) for type="date" input
+                const rawDate = data.dateFacture || '';
+                const isoDate = rawDate.includes('/')
+                    ? rawDate.split('/').reverse().join('-')  // DD/MM/YYYY → YYYY-MM-DD
+                    : rawDate;
+                setInvoiceDate(isoDate);
                 setArticles(data.articles.map(a => ({ ...a, delivered: a.delivered ?? false })));
                 setAmountPaid(data.amountPaid || 0);
                 setInvoiceType(data.type || InvoiceType.PROFORMA);
@@ -111,9 +116,10 @@ export default function InvoiceForm() {
 
     const handleGenerateNumber = async () => {
         try {
-            // Lire le prochain numéro disponible (counter + 1)
-            const nextSeq = await getNextSequenceCloud();
-            const formatted = formatBaseInvoiceNumber(nextSeq);
+            // Utilise la date du JOUR (pas la date du formulaire) pour le compteur
+            const today = new Date();
+            const nextSeq = await getNextSequenceCloud(today);
+            const formatted = formatBaseInvoiceNumber(nextSeq, today);
             setInvoiceNumber(formatted);
             toast.success("Numéro suggéré", {
                 description: `${formatted} - Prochain numéro disponible`
@@ -264,11 +270,10 @@ export default function InvoiceForm() {
                         <div className={styles.field}>
                             <label className={styles.label}>Date</label>
                             <input
-                                type="text"
+                                type="date"
                                 value={invoiceDate}
                                 onChange={(e) => setInvoiceDate(e.target.value)}
                                 className={styles.input}
-                                placeholder="JJ/MM/AAAA"
                             />
                         </div>
                     </div>

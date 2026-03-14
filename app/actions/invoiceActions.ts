@@ -156,12 +156,13 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
         }));
 
         if (!existingInv) { // Seulement en création
-            const sequenceMatch = clean.numeroFacture.match(/-(\d+)$/);
-            if (sequenceMatch) {
-                newSequence = parseInt(sequenceMatch[1], 10);
-
-                const dateObj = parseInvoiceDate(clean.dateFacture);
-                counterName = getCounterName(dateObj);
+            // Extraire la séquence ET la date depuis le numéro lui-même
+            // Format: FAC-YYMMDD-XXXX ou {PREFIX}-YYMMDD-XXXX
+            // La date du compteur = date intégrée dans le numéro, PAS dateFacture
+            const numberMatch = clean.numeroFacture.match(/^[A-Z]+-(\d{6})-(\d+)$/);
+            if (numberMatch) {
+                counterName = `invoice_${numberMatch[1]}`; // ex: invoice_260314
+                newSequence = parseInt(numberMatch[2], 10); // ex: 1
             }
         }
 
@@ -197,6 +198,23 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
         console.error('Action saveInvoiceCloud error:', error.message);
         return { success: false, error: error.message || "Une erreur inattendue est survenue lors de la sauvegarde." };
     }
+}
+
+export async function getInvoicesTotalCountAction(): Promise<number> {
+    const session = await getServerSession();
+    if (!session) return 0;
+    const { user, profile } = session;
+    const supabase = getSupabaseAdmin();
+
+    let query = supabase.from('invoices').select('id', { count: 'exact', head: true });
+    if (profile?.role !== 'admin') query = query.eq('user_id', user.id);
+
+    const { count, error } = await query;
+    if (error) {
+        console.error('Action getInvoicesTotalCount error:', error.message);
+        return 0;
+    }
+    return count || 0;
 }
 
 export async function getInvoicesCloudAction(page: number = 0, pageSize: number = 20): Promise<any[]> {

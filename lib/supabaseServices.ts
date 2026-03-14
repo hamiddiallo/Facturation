@@ -12,7 +12,8 @@ import {
     deleteInvoiceCloudAction,
     getNextSequenceCloudAction,
     generateInvoiceNumberAtomicAction,
-    getDashboardStatsAction
+    getDashboardStatsAction,
+    getInvoicesTotalCountAction
 } from '@/app/actions/invoiceActions';
 
 /**
@@ -67,3 +68,8 @@ export const deleteInvoiceCloud = async (id: string): Promise<boolean> => {
 export const getDashboardStats = async (): Promise<any> => {
     return await getDashboardStatsAction();
 };
+
+export const getInvoicesTotalCount = async (): Promise<number> => {
+    return await getInvoicesTotalCountAction();
+};
+
