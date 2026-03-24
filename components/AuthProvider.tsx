@@ -1,19 +1,23 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import type { Session } from '@supabase/supabase-js';
 import { authService, UserProfile } from '@/lib/authService';
 import { supabase } from '@/lib/supabase';
 import { checkSessionAction } from '@/app/actions/sessionActions';
+import { clearInvoiceData } from '@/lib/storage';
 
 const AuthContext = createContext<{
     profile: UserProfile | null;
     loading: boolean;
-    signOut: () => void;
+    signOut: () => Promise<void>;
+    refreshProfile: () => Promise<void>;
 }>({
     profile: null,
     loading: true,
-    signOut: () => { },
+    signOut: () => Promise.resolve(),
+    refreshProfile: () => Promise.resolve(),
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -26,8 +30,66 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     // Ref so long-lived callbacks always read the current pathname
     const pathnameRef = useRef(pathname);
     pathnameRef.current = pathname;
+    const profileRef = useRef<UserProfile | null>(profile);
+    profileRef.current = profile;
+    const isCheckingSessionRef = useRef(false);
 
-    // ─── Effect 1: Auth subscription + Watchdog (mounted ONCE) ─────────────────
+    const clearLocalSessionState = useCallback(() => {
+        if (typeof window === 'undefined') return;
+        localStorage.removeItem('app_user_session');
+        clearInvoiceData();
+    }, []);
+
+    const redirectToLogin = useCallback(() => {
+        setProfile(null);
+        setLoading(false);
+        if (pathnameRef.current !== '/login') {
+            router.replace('/login');
+        }
+    }, [router]);
+
+    const forceLogoutDueSessionIssue = useCallback(async () => {
+        clearLocalSessionState();
+        setProfile(null);
+        setLoading(false);
+        try {
+            await supabase.auth.signOut({ scope: 'local' });
+        } catch {
+            // Local signout best-effort only.
+        } finally {
+            if (pathnameRef.current !== '/login') {
+                router.replace('/login');
+            }
+        }
+    }, [clearLocalSessionState, router]);
+
+    const hasRoleDrift = useCallback((nextProfile: UserProfile | null) => {
+        const currentRole = profileRef.current?.role;
+        const nextRole = nextProfile?.role;
+        return Boolean(currentRole && nextRole && currentRole !== nextRole);
+    }, []);
+
+    const hasSessionRoleMismatch = useCallback((session: Session | null, nextProfile: UserProfile | null) => {
+        const appRole = session?.user?.app_metadata?.role;
+        const userRole = session?.user?.user_metadata?.role;
+        const tokenRole = typeof appRole === 'string'
+            ? appRole
+            : typeof userRole === 'string'
+                ? userRole
+                : null;
+
+        return Boolean(tokenRole && nextProfile?.role && tokenRole !== nextProfile.role);
+    }, []);
+
+    const refreshProfile = async () => {
+        try {
+            const freshProfile = await authService.getCurrentUser();
+            setProfile(freshProfile);
+        } catch (e) {
+            console.error("Error refreshing profile:", e);
+        }
+    };
+
     useEffect(() => {
         let isMounted = true;
 
@@ -35,7 +97,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
         /**
          * Fetch profile with a timeout to prevent infinite loading screen.
-         * If Supabase is slow/unreachable the app falls back to login instead of hanging.
          */
         const fetchProfile = async (): Promise<UserProfile | null> => {
             try {
@@ -48,9 +109,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             }
         };
 
-        // ── Auth state listener (INITIAL_SESSION is the primary auth check) ────
-        // INITIAL_SESSION fires immediately on mount from localStorage — no network.
-        // Using it avoids a separate getCurrentUser() call with fragile timeouts.
+        // ── Auth state listener ─────────────────────────────────────────────
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (!isMounted) return;
@@ -58,72 +117,96 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
                 if (event === 'INITIAL_SESSION') {
                     if (session) {
-                        // Valid session found locally — fetch profile (one network call)
                         const user = await fetchProfile();
                         if (!isMounted) return;
+                        if (!user) {
+                            await forceLogoutDueSessionIssue();
+                            return;
+                        }
+                        if (hasRoleDrift(user) || hasSessionRoleMismatch(session, user)) {
+                            await forceLogoutDueSessionIssue();
+                            return;
+                        }
                         setProfile(user);
                         setLoading(false);
-                        if (!user && pathnameRef.current !== '/login') {
-                            router.replace('/login');
-                        }
                     } else {
-                        // No session at all
-                        setProfile(null);
-                        setLoading(false);
-                        if (pathnameRef.current !== '/login') router.replace('/login');
+                        clearLocalSessionState();
+                        redirectToLogin();
                     }
                     return;
                 }
 
                 if (event === 'SIGNED_OUT') {
-                    setProfile(null);
-                    setLoading(false);
-                    if (pathnameRef.current !== '/login') router.replace('/login');
+                    clearLocalSessionState();
+                    redirectToLogin();
                 } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     const user = await fetchProfile();
                     if (!isMounted) return;
+                    if (!user) {
+                        await forceLogoutDueSessionIssue();
+                        return;
+                    }
+                    if (hasRoleDrift(user) || hasSessionRoleMismatch(session, user)) {
+                        await forceLogoutDueSessionIssue();
+                        return;
+                    }
                     setProfile(user);
                     setLoading(false);
-                    if (!user && pathnameRef.current !== '/login') router.replace('/login');
                 } else if (event === 'USER_UPDATED') {
-                    // Only refresh profile — do NOT sign out
                     const user = await fetchProfile();
-                    if (isMounted) setProfile(user);
+                    if (!isMounted) return;
+                    if (!user) {
+                        await forceLogoutDueSessionIssue();
+                        return;
+                    }
+                    if (hasRoleDrift(user) || hasSessionRoleMismatch(session, user)) {
+                        await forceLogoutDueSessionIssue();
+                        return;
+                    }
+                    setProfile(user);
                 }
             }
         );
 
-        // ── Session check helper (used by watchdog + visibility listener) ──────
-        // Verification goes through the server via httpOnly cookies, not localStorage
         const checkSession = async () => {
             if (pathnameRef.current === '/login') return;
+            if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+            if (isCheckingSessionRef.current) return;
 
-            // Skip when offline — httpOnly cookie session remains valid locally
-            if (typeof navigator !== 'undefined' && !navigator.onLine) {
-                console.info('Session check: device offline, skipping.');
-                return;
-            }
-
-            // Server-side check via httpOnly cookie (not localStorage)
-            const result = await checkSessionAction();
-            if (!result.valid) {
-                console.warn('Session check: server reports session invalid.');
-                // Attempt a client-side token refresh before giving up
-                const { error } = await supabase.auth.refreshSession();
-                if (error) {
-                    console.error('Session check: silent refresh failed, redirecting.', error);
-                    if (isMounted) { setProfile(null); router.replace('/login'); }
-                } else {
-                    console.info('Session check: token refreshed silently.');
+            isCheckingSessionRef.current = true;
+            try {
+                const result = await checkSessionAction();
+                if (!result.valid) {
+                    const { data: refreshedData, error } = await supabase.auth.refreshSession();
+                    if (error) {
+                        if (isMounted) {
+                            await forceLogoutDueSessionIssue();
+                        }
+                    } else {
+                        const refreshedUser = await fetchProfile();
+                        if (!refreshedUser && isMounted) {
+                            await forceLogoutDueSessionIssue();
+                        } else if (refreshedUser && isMounted) {
+                            if (
+                                hasRoleDrift(refreshedUser) ||
+                                hasSessionRoleMismatch(refreshedData.session, refreshedUser)
+                            ) {
+                                await forceLogoutDueSessionIssue();
+                                return;
+                            }
+                            setProfile(refreshedUser);
+                        }
+                    }
                 }
+            } catch (error) {
+                console.error('Session watchdog error:', error);
+            } finally {
+                isCheckingSessionRef.current = false;
             }
         };
 
-        // ── Watchdog: every 5 minutes, offline-safe ────────────────────────────
         const watchdog = setInterval(checkSession, 5 * 60 * 1000);
 
-        // ── Visibility change: fires when user returns to the app ─────────────
-        // Primary fix for "idle then crash/freeze" in standalone PWA mode
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
                 checkSession();
@@ -137,25 +220,29 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             clearInterval(watchdog);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Intentionally empty — pathnameRef tracks current route
+    }, [clearLocalSessionState, forceLogoutDueSessionIssue, hasRoleDrift, hasSessionRoleMismatch, redirectToLogin]);
 
-    // ─── Effect 2: Routing guard ───────────────────────────────────────────────
+    useEffect(() => {
+        const handleSessionInvalid = () => {
+            if (pathnameRef.current === '/login') return;
+            void forceLogoutDueSessionIssue();
+        };
+
+        window.addEventListener('app:session-invalid', handleSessionInvalid);
+        return () => window.removeEventListener('app:session-invalid', handleSessionInvalid);
+    }, [forceLogoutDueSessionIssue]);
+
+    // ─── Routing guard ────────────────────────────────────────────────────────
     useEffect(() => {
         if (!loading && !profile && pathname !== '/login') {
             router.replace('/login');
         }
     }, [loading, profile, pathname, router]);
 
-    // ─── Sign out ─────────────────────────────────────────────────────────────
     const signOut = async () => {
-        console.log('🚪 Déconnexion...');
-
         setProfile(null);
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('app_user_session');
-        }
-
+        setLoading(false);
+        clearLocalSessionState();
         try {
             await Promise.race([
                 authService.logout(),
@@ -163,12 +250,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     setTimeout(() => reject(new Error('TIMEOUT_API_LOGOUT')), 5000)
                 )
             ]);
-            console.log('✅ Déconnexion API réussie.');
-        } catch (error: any) {
-            console.warn('⚠️ Erreur déconnexion:', error.message);
+        } catch (error) {
+            console.warn('SignOut error:', error);
         } finally {
-            // No router.refresh() — it freezes standalone PWA on slow networks
-            router.replace('/login');
+            if (pathnameRef.current !== '/login') {
+                router.replace('/login');
+            }
         }
     };
 
@@ -181,7 +268,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
 
     return (
-        <AuthContext.Provider value={{ profile, loading, signOut }}>
+        <AuthContext.Provider value={{ profile, loading, signOut, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

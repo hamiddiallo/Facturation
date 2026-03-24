@@ -5,13 +5,84 @@ import { createClient } from '@supabase/supabase-js';
 import { InvoiceData, InvoiceType } from '@/lib/types';
 import { z } from 'zod';
 import { normalizeText } from '@/lib/textUtils';
-import { getCounterName, formatBaseInvoiceNumber } from '@/lib/counter';
+import { getCounterName } from '@/lib/counter';
 import { requireAuth, getServerSession } from '@/lib/serverAuth';
 import {
     initializeWeeklyMap,
     aggregateInvoicesByWeek,
     calculateFinancialMetrics
 } from '@/lib/dashboardUtils';
+
+type InvoiceCounterInfo = {
+    counterName: string;
+    sequence: number;
+};
+
+type InvoiceCountRow = {
+    number: string | null;
+};
+
+type InvoiceCompanyRow = {
+    display_name: string | null;
+};
+
+type InvoiceItemRow = {
+    id: string;
+    invoice_id: string;
+    designation: string;
+    quantity: number;
+    unit: string | null;
+    price: number;
+    total_price: number;
+};
+
+export type InvoiceRow = {
+    id: string;
+    user_id: string;
+    company_id: string;
+    number: string;
+    type: string;
+    date: string;
+    client_name: string;
+    client_address: string | null;
+    amount_paid: number;
+    total_amount: number;
+    created_at: string;
+    template_id?: string | null;
+    companies?: InvoiceCompanyRow | null;
+    invoice_items: InvoiceItemRow[];
+};
+
+type DashboardTopClient = {
+    name: string;
+    ca: number;
+};
+
+type DashboardUniqueArticle = {
+    designation: string;
+    quantity: number;
+    unit: string;
+};
+
+type DashboardWeekStat = {
+    label: string;
+    ca: number;
+};
+
+export type DashboardStats = {
+    totalInvoices: number;
+    uniqueClients: number;
+    uniqueArticles: number;
+    uniqueArticlesList: DashboardUniqueArticle[];
+    companiesCount: number;
+    usersCount: number;
+    totalCA: number;
+    totalOutstanding: number;
+    averageBasket: number;
+    recoveryRate: number;
+    topClients: DashboardTopClient[];
+    monthlyStats: DashboardWeekStat[];
+};
 
 /**
  * Parse une date de format DD/MM/YYYY ou YYYY-MM-DD vers un objet Date valide.
@@ -26,12 +97,31 @@ function parseInvoiceDate(dateStr: string): Date {
     return new Date(`${y}-${m}-${d}`);
 }
 
+/**
+ * Extrait les informations de compteur depuis un numéro de facture.
+ * Compatible avec tous préfixes: PREFIX-YYMMDD-XXXX
+ */
+function extractCounterInfo(invoiceNumber: string): InvoiceCounterInfo | null {
+    const normalized = invoiceNumber.trim().toUpperCase();
+    const match = normalized.match(/-(\d{6})-(\d+)$/);
+
+    if (!match) return null;
+
+    const sequence = Number.parseInt(match[2], 10);
+    if (!Number.isFinite(sequence) || sequence <= 0) return null;
+
+    return {
+        counterName: `invoice_${match[1]}`,
+        sequence
+    };
+}
+
 // Helper to get Supabase Admin client (bypasses RLS)
 const getSupabaseAdmin = () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
     if (!url || !serviceRole) {
-        console.error('CRITICAL: Supabase URL or Service Role Key is missing in ENV');
+        throw new Error('CRITICAL: Supabase URL or Service Role Key is missing in ENV');
     }
     return createClient(url, serviceRole);
 };
@@ -61,6 +151,7 @@ export async function getNextSequenceCloudAction(dateStr: string | Date = new Da
     await requireAuth();
     const supabase = getSupabaseAdmin();
     const counterName = getCounterName(dateStr);
+    const dateToken = counterName.replace('invoice_', '');
 
     const { data, error } = await supabase
         .from('counters')
@@ -73,7 +164,27 @@ export async function getNextSequenceCloudAction(dateStr: string | Date = new Da
         throw new Error(`Échec lecture compteur: ${error.message}`);
     }
 
-    return data ? data.last_sequence + 1 : 1;
+    // Filet de sécurité: le compteur SQL peut être désynchronisé si des numéros
+    // ont été saisis manuellement avec un format non standard dans le passé.
+    const { data: invoiceRows, error: invoiceRowsError } = await supabase
+        .from('invoices')
+        .select('number')
+        .like('number', `%-${dateToken}-%`);
+
+    if (invoiceRowsError) {
+        console.error('Action getNextSequenceCloud invoices scan error:', invoiceRowsError);
+        throw new Error(`Échec lecture des factures: ${invoiceRowsError.message}`);
+    }
+
+    const maxFromInvoices = (invoiceRows as InvoiceCountRow[] | null)?.reduce((max, row) => {
+        if (!row.number) return max;
+        const parsed = extractCounterInfo(row.number);
+        if (!parsed || parsed.counterName !== counterName) return max;
+        return Math.max(max, parsed.sequence);
+    }, 0) || 0;
+
+    const counterLastSequence = data?.last_sequence || 0;
+    return Math.max(counterLastSequence, maxFromInvoices) + 1;
 }
 
 export async function generateInvoiceNumberAtomicAction(dateStr: string | Date = new Date()): Promise<number> {
@@ -156,13 +267,12 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
         }));
 
         if (!existingInv) { // Seulement en création
-            // Extraire la séquence ET la date depuis le numéro lui-même
-            // Format: FAC-YYMMDD-XXXX ou {PREFIX}-YYMMDD-XXXX
-            // La date du compteur = date intégrée dans le numéro, PAS dateFacture
-            const numberMatch = clean.numeroFacture.match(/^[A-Z]+-(\d{6})-(\d+)$/);
-            if (numberMatch) {
-                counterName = `invoice_${numberMatch[1]}`; // ex: invoice_260314
-                newSequence = parseInt(numberMatch[2], 10); // ex: 1
+            // La date/séquence du compteur suit le numéro affiché.
+            // On accepte n'importe quel préfixe tant que la fin est -YYMMDD-XXXX.
+            const parsed = extractCounterInfo(clean.numeroFacture);
+            if (parsed) {
+                counterName = parsed.counterName;
+                newSequence = parsed.sequence;
             }
         }
 
@@ -194,9 +304,12 @@ export async function saveInvoiceCloudAction(invoice: InvoiceData, companyId: st
         }
 
         return { success: true, id: invoiceId };
-    } catch (error: any) {
-        console.error('Action saveInvoiceCloud error:', error.message);
-        return { success: false, error: error.message || "Une erreur inattendue est survenue lors de la sauvegarde." };
+    } catch (error: unknown) {
+        const message = error instanceof Error
+            ? error.message
+            : "Une erreur inattendue est survenue lors de la sauvegarde.";
+        console.error('Action saveInvoiceCloud error:', message);
+        return { success: false, error: message };
     }
 }
 
@@ -217,7 +330,7 @@ export async function getInvoicesTotalCountAction(): Promise<number> {
     return count || 0;
 }
 
-export async function getInvoicesCloudAction(page: number = 0, pageSize: number = 20): Promise<any[]> {
+export async function getInvoicesCloudAction(page: number = 0, pageSize: number = 20): Promise<InvoiceRow[]> {
     const session = await getServerSession();
     if (!session) return [];
 
@@ -248,7 +361,7 @@ export async function getInvoicesCloudAction(page: number = 0, pageSize: number 
         console.error('Action getInvoicesCloud error:', error.message);
         return [];
     }
-    return data || [];
+    return (data as InvoiceRow[] | null) || [];
 }
 
 export async function deleteInvoiceCloudAction(id: string): Promise<boolean> {
@@ -267,7 +380,7 @@ export async function deleteInvoiceCloudAction(id: string): Promise<boolean> {
     return !error;
 }
 
-export async function getDashboardStatsAction(): Promise<any> {
+export async function getDashboardStatsAction(): Promise<DashboardStats | null> {
     const session = await getServerSession();
     if (!session) return null;
 
@@ -281,9 +394,10 @@ export async function getDashboardStatsAction(): Promise<any> {
     const { data: globalData, error: globalError } = await statsQuery;
     if (globalError) throw globalError;
 
-    const totalInvoices = globalData?.length || 0;
-    const totalCA = globalData?.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0) || 0;
-    const totalPaid = globalData?.reduce((sum, inv) => sum + Number(inv.amount_paid || 0), 0) || 0;
+    const globalRows = (globalData || []) as Array<{ total_amount: number | string | null; amount_paid: number | string | null }>;
+    const totalInvoices = globalRows.length;
+    const totalCA = globalRows.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0);
+    const totalPaid = globalRows.reduce((sum, inv) => sum + Number(inv.amount_paid || 0), 0);
     const totalOutstanding = totalCA - totalPaid;
     const { averageBasket, recoveryRate } = calculateFinancialMetrics(totalCA, totalInvoices, totalPaid);
 
@@ -300,7 +414,7 @@ export async function getDashboardStatsAction(): Promise<any> {
     const { data: trendInvoices } = await trendQuery;
 
     const weeklyMap = initializeWeeklyMap(now);
-    const monthlyStats = aggregateInvoicesByWeek(trendInvoices || [], weeklyMap);
+    aggregateInvoicesByWeek(trendInvoices || [], weeklyMap);
 
     // 3. Top Clients (Toujours besoin des noms, mais on peut limiter)
     let clientQuery = supabase.from('invoices').select('client_name, total_amount');
@@ -309,7 +423,7 @@ export async function getDashboardStatsAction(): Promise<any> {
     const { data: allInvoicesForClients } = await clientQuery;
 
     const clientMap = new Map<string, number>();
-    allInvoicesForClients?.forEach(inv => {
+    (allInvoicesForClients as Array<{ client_name: string; total_amount: number | string | null }> | null)?.forEach(inv => {
         clientMap.set(inv.client_name, (clientMap.get(inv.client_name) || 0) + Number(inv.total_amount || 0));
     });
     const topClients = Array.from(clientMap.entries())
@@ -329,7 +443,7 @@ export async function getDashboardStatsAction(): Promise<any> {
     const { data: items } = await itemQuery;
 
     const articleMap = new Map<string, { designation: string, quantity: number, unit: string }>();
-    items?.forEach(it => {
+    (items as Array<{ designation: string; quantity: number; unit: string | null }> | null)?.forEach(it => {
         const key = `${it.designation}|${it.unit || ''}`;
         const current = articleMap.get(key) || { designation: it.designation, quantity: 0, unit: it.unit || '-' };
         current.quantity += it.quantity;

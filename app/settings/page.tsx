@@ -14,6 +14,7 @@ import {
     setDefaultCompany as setDefaultCompanyCloud
 } from '@/lib/supabaseServices';
 import { adminCreateUser, adminDeleteUser, adminListUsers, adminUpdateProfile, uploadAvatarAction } from '@/lib/adminActions';
+import type { ProfileRow, Role, Status } from '@/lib/adminActions';
 import { useAuth } from '@/components/AuthProvider';
 import PasswordStrength from '@/components/PasswordStrength';
 import BackupManager from '@/components/BackupManager';
@@ -22,6 +23,17 @@ import ConfirmationDialog from '@/components/ConfirmationDialog';
 import styles from './page.module.css';
 
 type MainTab = 'companies' | 'users' | 'backup';
+type ListedUser = ProfileRow;
+
+type EditableUser = {
+    id: string;
+    fullName: string;
+    email: string;
+    role: Role;
+    status: Status;
+    avatar_url?: string;
+    password: string;
+};
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -30,12 +42,14 @@ export default function SettingsPage() {
 
     // SWR Data Fetching
     const { data: companies = [], isLoading: isLoadingCompanies } = useSWR('companies', getCompanies);
-    const { data: users = [], isLoading: isLoadingUsers } = useSWR(profile?.role === 'admin' ? 'users' : null, adminListUsers);
+    const { data: users = [], isLoading: isLoadingUsers } = useSWR<ListedUser[]>(
+        profile?.role === 'admin' ? 'users' : null,
+        adminListUsers
+    );
 
     // Global State
     const [mainTab, setMainTab] = useState<MainTab>('companies');
     const [internalLoading, setInternalLoading] = useState(false);
-    const [saveStatus, setSaveStatus] = useState<{ msg: string, isError: boolean } | null>(null);
 
     // Filter loading state
     const loading = authLoading || (mainTab === 'companies' ? isLoadingCompanies : isLoadingUsers) || internalLoading;
@@ -51,7 +65,7 @@ export default function SettingsPage() {
         fullName: '',
         role: 'user' as 'admin' | 'user'
     });
-    const [editingUser, setEditingUser] = useState<any | null>(null);
+    const [editingUser, setEditingUser] = useState<EditableUser | null>(null);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [isNewUserPasswordValid, setIsNewUserPasswordValid] = useState(false);
     const [isEditingUserPasswordValid, setIsEditingUserPasswordValid] = useState(true);
@@ -105,7 +119,14 @@ export default function SettingsPage() {
         if (!editingCompany) return;
         const { name, value } = e.target;
 
-        let updates: any = { [name]: value };
+        const updates: Partial<Company> & { name?: string } = {};
+        if (name === 'displayName') updates.displayName = value;
+        if (name === 'businessType') updates.businessType = value;
+        if (name === 'address') updates.address = value;
+        if (name === 'nif') updates.nif = value;
+        if (name === 'phone') updates.phone = value;
+        if (name === 'email') updates.email = value;
+        if (name === 'markupPercentage') updates.markupPercentage = Number.parseFloat(value) || 0;
 
         // Auto-generate unique ID from Display Name (only for NEW companies)
         if (name === 'displayName' && !editingCompany.id) {
@@ -119,11 +140,7 @@ export default function SettingsPage() {
             updates.name = slug;
         }
 
-        if (name === 'markupPercentage') {
-            setEditingCompany({ ...editingCompany, ...updates, [name]: value });
-        } else {
-            setEditingCompany({ ...editingCompany, ...updates });
-        }
+        setEditingCompany({ ...editingCompany, ...updates });
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,7 +196,7 @@ export default function SettingsPage() {
             }
             mutate('companies');
             setIsModalOpen(false);
-        } catch (err) {
+        } catch {
             toast.error('Erreur de sauvegarde');
         } finally {
             setInternalLoading(false);
@@ -231,8 +248,9 @@ export default function SettingsPage() {
             setNewUser({ email: '', password: '', fullName: '', role: 'user' });
             mutate('users');
             toast.success('Utilisateur créé avec succès !');
-        } catch (err: any) {
-            toast.error('Erreur', { description: err.message });
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Erreur inattendue.';
+            toast.error('Erreur', { description: message });
         } finally {
             setInternalLoading(false);
         }
@@ -249,22 +267,23 @@ export default function SettingsPage() {
             await adminDeleteUser(userToDelete);
             mutate('users');
             toast.success('Utilisateur révoqué.');
-        } catch (err: any) {
-            toast.error('Erreur', { description: err.message });
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Erreur inattendue.';
+            toast.error('Erreur', { description: message });
         } finally {
             setUserToDelete(null);
             setInternalLoading(false);
         }
     };
 
-    const openEditUserModal = (user: any) => {
+    const openEditUserModal = (user: ListedUser) => {
         setEditingUser({
             id: user.id,
-            fullName: user.full_name,
+            fullName: user.full_name || '',
             email: user.email,
             role: user.role,
             status: user.status,
-            avatar_url: user.avatar_url,
+            avatar_url: user.avatar_url || undefined,
             password: '' // Vide par défaut, optionnel
         });
         setIsUserModalOpen(true);
@@ -333,18 +352,12 @@ export default function SettingsPage() {
             setEditingUser(null);
             mutate('users');
             toast.success('Utilisateur modifié avec succès !');
-        } catch (err: any) {
-            toast.error('Erreur', { description: err.message });
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Erreur inattendue.';
+            toast.error('Erreur', { description: message });
         } finally {
             setInternalLoading(false);
         }
-    };
-
-
-
-    const setStatus = (msg: string, isError = false) => {
-        if (isError) toast.error(msg);
-        else toast.success(msg);
     };
 
     if (authLoading || (loading && companies.length === 0 && mainTab === 'companies')) {
@@ -362,7 +375,7 @@ export default function SettingsPage() {
                 </header>
 
                 <div className={styles.content}>
-                    <p style={{ fontSize: '0.8rem', color: '#718096', marginBottom: '1rem' }}>Les champs marqués d'un astérisque (*) sont obligatoires.</p>
+                    <p style={{ fontSize: '0.8rem', color: '#718096', marginBottom: '1rem' }}>Les champs marqués d&apos;un astérisque (*) sont obligatoires.</p>
                     <div className={styles.mainTabs}>
                         <button
                             className={`${styles.mainTabButton} ${mainTab === 'companies' ? styles.mainTabActive : ''}`}
@@ -404,7 +417,7 @@ export default function SettingsPage() {
                                     <table className={styles.companyTable}>
                                         <thead>
                                             <tr>
-                                                <th>Nom d'affichage</th>
+                                                <th>Nom d&apos;affichage</th>
                                                 <th>Activité</th>
                                                 <th>Téléphone</th>
                                                 <th>Défaut</th>
@@ -600,7 +613,7 @@ export default function SettingsPage() {
                             <div className={styles.form}>
                                 <div className={styles.responsiveRow}>
                                     <div className={styles.formGroup}>
-                                        <label>Nom d'affichage *</label>
+                                        <label>Nom d&apos;affichage *</label>
                                         <input
                                             type="text"
                                             name="displayName"
@@ -783,7 +796,7 @@ export default function SettingsPage() {
                 <div className={styles.modalOverlay} onClick={() => setIsUserModalOpen(false)}>
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.modalHeader}>
-                            <h2>✏️ Modifier l'utilisateur</h2>
+                            <h2>✏️ Modifier l&apos;utilisateur</h2>
                             <button onClick={() => setIsUserModalOpen(false)} className={styles.closeBtn}>✕</button>
                         </div>
 
@@ -836,7 +849,7 @@ export default function SettingsPage() {
                                         <select
                                             className={styles.input}
                                             value={editingUser.role}
-                                            onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                                            onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as Role })}
                                         >
                                             <option value="user">User</option>
                                             <option value="admin">Admin</option>
@@ -848,7 +861,7 @@ export default function SettingsPage() {
                                         <select
                                             className={styles.input}
                                             value={editingUser.status}
-                                            onChange={(e) => setEditingUser({ ...editingUser, status: e.target.value })}
+                                            onChange={(e) => setEditingUser({ ...editingUser, status: e.target.value as Status })}
                                         >
                                             <option value="active">Actif</option>
                                             <option value="inactive">Inactif</option>

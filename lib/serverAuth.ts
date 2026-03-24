@@ -31,7 +31,7 @@ export const getServerSession = cache(async () => {
 
     if (profileError || !profile) {
         console.error('Error fetching server profile:', profileError);
-        return { user, profile: null };
+        return null;
     }
 
     return { user, profile };
@@ -44,12 +44,12 @@ export const getServerSession = cache(async () => {
 export async function requireAuth() {
     const session = await getServerSession();
 
-    if (!session || !session.user) {
+    if (!session || !session.user || !session.profile) {
         throw new Error('Non authentifié');
     }
 
-    if (session.profile?.status === 'suspended') {
-        throw new Error('Compte suspendu');
+    if (session.profile.status !== 'active') {
+        throw new Error('Compte inactif');
     }
 
     return session;

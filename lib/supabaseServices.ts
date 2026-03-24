@@ -15,6 +15,8 @@ import {
     getDashboardStatsAction,
     getInvoicesTotalCountAction
 } from '@/app/actions/invoiceActions';
+import type { DashboardStats, InvoiceRow } from '@/app/actions/invoiceActions';
+export type { DashboardStats, InvoiceRow };
 
 /**
  * Ce fichier sert de bridge entre le frontend (Client Components) et les Server Actions.
@@ -49,7 +51,7 @@ export const saveInvoiceCloud = async (invoice: InvoiceData, companyId: string, 
     return await saveInvoiceCloudAction(invoice, companyId, totalAmount);
 };
 
-export const getInvoicesCloud = async (page: number = 0, pageSize: number = 20): Promise<any[]> => {
+export const getInvoicesCloud = async (page: number = 0, pageSize: number = 20): Promise<InvoiceRow[]> => {
     return await getInvoicesCloudAction(page, pageSize);
 };
 
@@ -65,11 +67,10 @@ export const deleteInvoiceCloud = async (id: string): Promise<boolean> => {
     return await deleteInvoiceCloudAction(id);
 };
 
-export const getDashboardStats = async (): Promise<any> => {
+export const getDashboardStats = async (): Promise<DashboardStats | null> => {
     return await getDashboardStatsAction();
 };
 
 export const getInvoicesTotalCount = async (): Promise<number> => {
     return await getInvoicesTotalCountAction();
 };
-

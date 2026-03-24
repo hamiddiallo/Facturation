@@ -1,7 +1,6 @@
 'use client';
 
 import { supabase } from './supabase';
-import { getProfileById, getCurrentUserAction } from './adminActions';
 
 export interface UserProfile {
     id: string;
@@ -37,8 +36,9 @@ export const authService = {
             }
 
             return { success: true, user: profile as UserProfile };
-        } catch (e: any) {
-            return { success: false, error: e.message || 'Identifiants incorrects' };
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : 'Identifiants incorrects';
+            return { success: false, error: message };
         }
     },
 

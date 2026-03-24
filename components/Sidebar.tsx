@@ -1,17 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { preload } from 'swr';
-import { getInvoicesCloud } from '@/lib/supabaseServices';
 import { useAuth } from './AuthProvider';
 import styles from './Sidebar.module.css';
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const router = useRouter();
     const { profile, signOut } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
 

@@ -122,10 +122,6 @@ vercel
 
 Ou via l'interface : [vercel.com/new](https://vercel.com/new)
 
-## 🐛 Bugs Connus
-
-Aucun bug critique. Voir [verification_report.md](/.gemini/antigravity/brain/80377e7a-92c0-472b-9a37-f4dedc200c45/verification_report.md) pour le rapport complet.
-
 ## 📝 Licence
 
 Projet privé - Tous droits réservés
@@ -137,4 +133,4 @@ Développé pour la gestion de factures en Guinée
 ---
 
 **Version** : 1.0.0  
-**Dernière mise à jour** : Décembre 2024
+**Dernière mise à jour** :janvier 2026

@@ -1,5 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
 import { InvoiceData } from '@/lib/types';
-import { calculateAdjustedPrice } from '@/lib/priceCalculations';
 import { getInvoiceTitle } from '@/lib/textUtils';
 import styles from './BonLivraison.module.css';
 

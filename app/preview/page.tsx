@@ -247,9 +247,7 @@ export default function PreviewPage() {
                         // If image is taller than A4, scale it down to fit
                         const maxHeight = 297; // A4 height in mm
                         if (imgHeight > maxHeight) {
-                            const ratio = maxHeight / imgHeight;
                             imgHeight = maxHeight;
-                            // We'll scale the width too to maintain aspect ratio
                         }
 
                         // Create PDF - always single page A4
@@ -291,12 +289,13 @@ export default function PreviewPage() {
                             a.click();
                             URL.revokeObjectURL(url);
                         }
-                    } catch (err: any) {
+                    } catch (err: unknown) {
+                        const error = err instanceof Error ? err : new Error('Unknown preview error');
                         // Ignore share cancellation
-                        if (err.name === 'AbortError' || err.message?.includes('Share canceled')) {
+                        if (error.name === 'AbortError' || error.message?.includes('Share canceled')) {
                             return;
                         }
-                        console.error('Error sharing/downloading:', err);
+                        console.error('Error sharing/downloading:', error);
                         toast.error('Échec de l\'opération', {
                             description: 'Erreur lors du partage ou du téléchargement du PDF. Veuillez réessayer.'
                         });

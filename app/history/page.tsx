@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import { getInvoicesCloud, deleteInvoiceCloud, getInvoicesTotalCount } from '@/lib/supabaseServices';
+import type { InvoiceRow } from '@/lib/supabaseServices';
 import { saveInvoiceData } from '@/lib/storage';
 import { InvoiceType } from '@/lib/types';
 import { toast } from 'sonner';
@@ -20,12 +21,16 @@ export default function HistoryPage() {
     const pageSize = 20;
 
     // SWR Data Fetching - Key includes page to trigger re-fetch
-    const { data: invoices = [], isLoading: isLoadingInvoices, mutate } = useSWR(['invoices', currentPage], () => getInvoicesCloud(currentPage, pageSize));
+    const invoicesQuery = useSWR(
+        ['invoices', currentPage],
+        () => getInvoicesCloud(currentPage, pageSize)
+    );
+    const invoices = (invoicesQuery.data || []) as InvoiceRow[];
+    const { isLoading: isLoadingInvoices, mutate } = invoicesQuery;
     // Total count (server-side, not paginated)
     const { data: totalCount = 0 } = useSWR('invoices_total_count', getInvoicesTotalCount);
 
-    const [internalLoading, setInternalLoading] = useState(false);
-    const loading = isLoadingInvoices || internalLoading;
+    const loading = isLoadingInvoices;
 
     // Filter States
     const [clientSearch, setClientSearch] = useState('');
@@ -39,21 +44,21 @@ export default function HistoryPage() {
     const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
 
 
-    const handleLoadToForm = (inv: any, target: '/' | '/preview') => {
-        const articles = inv.invoice_items.map((it: any) => ({
+    const handleLoadToForm = (inv: InvoiceRow, target: '/' | '/preview') => {
+        const articles = inv.invoice_items.map((it) => ({
             designation: it.designation,
             quantity: it.quantity,
-            unit: it.unit,
+            unit: it.unit || '',
             price: it.price,
             totalPrice: it.total_price
         }));
 
-        const totalFacture = articles.reduce((sum: number, it: any) => sum + it.totalPrice, 0);
+        const totalFacture = articles.reduce((sum, it) => sum + it.totalPrice, 0);
 
         saveInvoiceData({
             client: {
                 nom: inv.client_name,
-                adresse: inv.client_address
+                adresse: inv.client_address || ''
             },
             numeroFacture: inv.number,
             articles: articles,
@@ -85,7 +90,7 @@ export default function HistoryPage() {
         if (!invoiceToDelete) return;
 
         // Configuration de la mutation optimiste
-        const updatedInvoices = invoices.filter((inv: any) => inv.id !== invoiceToDelete);
+        const updatedInvoices = invoices.filter((inv) => inv.id !== invoiceToDelete);
 
         try {
             // Déclencher la mutation avec les données optimistes
@@ -201,7 +206,7 @@ export default function HistoryPage() {
                                 />
                             </div>
                             <div className={styles.filterGroup}>
-                                <label>Jusqu'au</label>
+                                <label>Jusqu&apos;au</label>
                                 <input
                                     type="date"
                                     value={endDate}

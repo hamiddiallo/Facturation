@@ -21,8 +21,9 @@ export default function BackupManager() {
                     description: result.error
                 });
             }
-        } catch (error: any) {
-            toast.error('Erreur', { description: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Erreur inattendue.';
+            toast.error('Erreur', { description: message });
         } finally {
             setLoading(false);
         }
@@ -46,8 +47,9 @@ export default function BackupManager() {
                     description: result.error
                 });
             }
-        } catch (error: any) {
-            toast.error('Erreur', { description: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Erreur inattendue.';
+            toast.error('Erreur', { description: message });
         } finally {
             setLoading(false);
         }

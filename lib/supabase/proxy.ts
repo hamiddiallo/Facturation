@@ -17,7 +17,7 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
                     response = NextResponse.next({
                         request: {
                             headers: request.headers,
@@ -38,7 +38,12 @@ export async function updateSession(request: NextRequest) {
     const isPublicRoute =
         url.pathname === '/login' ||
         url.pathname === '/auth/callback' ||
-        url.pathname === '/preview'
+        url.pathname === '/preview' ||
+        url.pathname === '/manifest.json' ||
+        url.pathname === '/robots.txt' ||
+        url.pathname === '/sitemap.xml' ||
+        url.pathname === '/apple-touch-icon.png' ||
+        url.pathname === '/sw.js'
 
     const hasSessionCookie = request.cookies.getAll().some(c => c.name.startsWith('sb-'));
 

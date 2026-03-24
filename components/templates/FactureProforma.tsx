@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { InvoiceData } from '@/lib/types';
 import { numberToWords } from '@/lib/numberToWords';
 import { calculateAdjustedPrice } from '@/lib/priceCalculations';

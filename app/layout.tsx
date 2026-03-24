@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-    variable: "--font-geist-sans",
-    subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-    variable: "--font-geist-mono",
-    subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
     title: "Générateur de Factures - Master",
@@ -37,6 +26,7 @@ import AuthProvider from "@/components/AuthProvider";
 import MainLayout from "@/components/MainLayout";
 import SWRConfigContext from "@/components/SWRConfigContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import RuntimeRecovery from "@/components/RuntimeRecovery";
 import { Toaster } from "sonner";
 
 export default function RootLayout({
@@ -56,7 +46,8 @@ export default function RootLayout({
                 {/* Empêche iOS de détecter et de styliser les numéros de téléphone */}
                 <meta name="format-detection" content="telephone=no" />
             </head>
-            <body className={`${geistSans.variable} ${geistMono.variable}`}>
+            <body>
+                <RuntimeRecovery />
                 <ErrorBoundary>
                     <AuthProvider>
                         <SWRConfigContext>

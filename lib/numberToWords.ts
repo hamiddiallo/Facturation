@@ -36,7 +36,7 @@ export function numberToWords(num: number): string {
     const thousand = Math.floor((num % 1000000) / 1000);
     const remainder = num % 1000;
 
-    let parts = [];
+    const parts: string[] = [];
 
     if (billion > 0) {
         parts.push(billion === 1 ? "un milliard" : convertLessThanThousand(billion) + " milliards");

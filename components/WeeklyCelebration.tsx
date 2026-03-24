@@ -12,7 +12,9 @@ interface CelebrationState {
 
 export default function WeeklyCelebration() {
     const [isVisible, setIsVisible] = useState(false);
-    const [message, setMessage] = useState('');
+    const [message] = useState(() => {
+        return weeklyMessages[Math.floor(Math.random() * weeklyMessages.length)].text;
+    });
 
     // Détermine l'ID de la semaine actuelle (Année-Semaine)
     const getWeekId = () => {
@@ -25,16 +27,22 @@ export default function WeeklyCelebration() {
     };
 
     const triggerConfetti = useCallback(() => {
-        const duration = 5 * 1000;
+        const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reducedMotion) return () => { };
+
+        const isStandalone = typeof window !== 'undefined'
+            && (window.matchMedia('(display-mode: standalone)').matches
+                || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone));
+        const duration = isStandalone ? 2500 : 5000;
         const animationEnd = Date.now() + duration;
         const defaults = { startVelocity: 45, spread: 360, ticks: 100, zIndex: 10000 };
 
         const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
         // FEU D'ARTIFICE (Multiple explosions)
-        const interval = setInterval(() => {
+        const interval = window.setInterval(() => {
             const timeLeft = animationEnd - Date.now();
-            if (timeLeft <= 0) return clearInterval(interval);
+            if (timeLeft <= 0) return window.clearInterval(interval);
 
             confetti({
                 ...defaults,
@@ -43,9 +51,12 @@ export default function WeeklyCelebration() {
                 colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
             });
         }, 300);
+        return () => window.clearInterval(interval);
     }, []);
 
     useEffect(() => {
+        let rafId: number | null = null;
+        let stopConfetti: (() => void) | null = null;
         const currentWeekId = getWeekId();
         const storedState = localStorage.getItem('weekly_celebration_state');
         let state: CelebrationState;
@@ -72,16 +83,22 @@ export default function WeeklyCelebration() {
 
         if (!state.shown) {
             // Première visite de la semaine
-            const randomMsg = weeklyMessages[Math.floor(Math.random() * weeklyMessages.length)].text;
-
-            setMessage(randomMsg);
-            setIsVisible(true);
-            triggerConfetti();
+            rafId = window.requestAnimationFrame(() => {
+                setIsVisible(true);
+            });
+            stopConfetti = triggerConfetti();
 
             // Marquer comme montré
             state.shown = true;
             localStorage.setItem('weekly_celebration_state', JSON.stringify(state));
         }
+
+        return () => {
+            if (rafId !== null) {
+                window.cancelAnimationFrame(rafId);
+            }
+            if (stopConfetti) stopConfetti();
+        };
     }, [triggerConfetti]);
 
     if (!isVisible) return null;
@@ -90,7 +107,7 @@ export default function WeeklyCelebration() {
         <div className={styles.overlay}>
             <div className={styles.modal}>
                 <span className={styles.icon}>🎉</span>
-                <h2 className={styles.title}>C'est la fête !</h2>
+                <h2 className={styles.title}>C&apos;est la fête !</h2>
                 <p className={styles.message}>{message}</p>
                 <button
                     className={styles.closeButton}

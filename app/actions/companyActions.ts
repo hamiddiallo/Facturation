@@ -7,12 +7,46 @@ import { z } from 'zod';
 import { normalizeText, normalizeEmail } from '@/lib/textUtils';
 import { requireAuth, getServerSession } from '@/lib/serverAuth';
 
+type CompanyRow = {
+    id: string;
+    user_id: string;
+    name: string;
+    display_name: string;
+    business_type: string | null;
+    address: string | null;
+    nif: string | null;
+    phone: string | null;
+    email: string | null;
+    has_styled_logo: boolean | null;
+    registration_numbers: string | null;
+    seal_image: string | null;
+    is_default: boolean | null;
+    template_id: string | null;
+    markup_percentage: number | null;
+};
+
+type CompanyUpdatePayload = {
+    name?: string;
+    display_name?: string;
+    business_type?: string | null;
+    address?: string | null;
+    nif?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    has_styled_logo?: boolean | null;
+    registration_numbers?: string | null;
+    seal_image?: string | null;
+    is_default?: boolean;
+    template_id?: string | null;
+    markup_percentage?: number | null;
+};
+
 // Helper to get Supabase Admin client (bypasses RLS)
 const getSupabaseAdmin = () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
     if (!url || !serviceRole) {
-        console.error('CRITICAL: Supabase URL or Service Role Key is missing in ENV');
+        throw new Error('CRITICAL: Supabase URL or Service Role Key is missing in ENV');
     }
     return createClient(url, serviceRole);
 };
@@ -35,18 +69,18 @@ const CompanySchema = z.object({
     markupPercentage: z.number().min(0).max(100).nullable().optional()
 });
 
-const mapCompany = (data: any): Company => ({
+const mapCompany = (data: CompanyRow): Company => ({
     id: data.id,
     name: data.name,
     displayName: data.display_name,
-    businessType: data.business_type,
-    address: data.address,
-    nif: data.nif,
-    phone: data.phone,
-    email: data.email,
-    hasStyledLogo: data.has_styled_logo,
-    registrationNumbers: data.registration_numbers,
-    sealImage: data.seal_image,
+    businessType: data.business_type || '',
+    address: data.address || '',
+    nif: data.nif || undefined,
+    phone: data.phone || '',
+    email: data.email || '',
+    hasStyledLogo: data.has_styled_logo ?? undefined,
+    registrationNumbers: data.registration_numbers || undefined,
+    sealImage: data.seal_image ?? null,
     isDefault: data.is_default || false,
     templateId: data.template_id || 'template_standard',
     markupPercentage: data.markup_percentage || 0
@@ -75,7 +109,7 @@ export async function getCompaniesAction(): Promise<Company[]> {
         return [];
     }
 
-    return (data || []).map(mapCompany);
+    return ((data as CompanyRow[] | null) || []).map(mapCompany);
 }
 
 export async function createCompanyAction(company: Omit<Company, 'id'>): Promise<Company | null> {
@@ -137,7 +171,7 @@ export async function updateCompanyAction(id: string, company: Partial<Company>)
         throw new Error('Action non autorisée');
     }
 
-    const updates: any = {};
+    const updates: CompanyUpdatePayload = {};
     if (company.name !== undefined) updates.name = normalizeText(company.name);
     if (company.displayName !== undefined) updates.display_name = normalizeText(company.displayName);
     if (company.businessType !== undefined) updates.business_type = company.businessType;
@@ -213,7 +247,7 @@ export async function setDefaultCompanyAction(companyId: string): Promise<boolea
             .eq('id', companyId);
 
         return !setError;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Unexpected error in setDefaultCompanyAction:', error);
         return false;
     }

@@ -27,8 +27,13 @@ const ArticleList = memo(({
         if (field === 'designation' || field === 'unit') {
             article[field] = value as string;
         } else if (field === 'quantity' || field === 'price') {
-            const numValue = value === '' ? '' : (parseFloat(value.toString()) || 0);
-            article[field] = numValue as any;
+            const parsed = Number.parseFloat(value.toString());
+            const numValue = Number.isFinite(parsed) ? parsed : 0;
+            if (field === 'quantity') {
+                article.quantity = numValue;
+            } else {
+                article.price = numValue;
+            }
             article.totalPrice = (Number(article.quantity) || 0) * (Number(article.price) || 0);
         }
 
@@ -182,5 +187,7 @@ const ArticleList = memo(({
         </div>
     );
 });
+
+ArticleList.displayName = 'ArticleList';
 
 export default ArticleList;

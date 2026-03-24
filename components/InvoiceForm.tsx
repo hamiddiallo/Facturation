@@ -5,7 +5,6 @@ import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import { Company, Article, InvoiceData, InvoiceType } from '@/lib/types';
 import { saveInvoiceData, getInvoiceData, clearInvoiceData } from '@/lib/storage';
-import { useAuth } from './AuthProvider';
 import { getCompanies, saveInvoiceCloud, getNextSequenceCloud } from '@/lib/supabaseServices';
 import { formatBaseInvoiceNumber } from '@/lib/counter';
 import { toast } from 'sonner';
@@ -15,7 +14,6 @@ import styles from './InvoiceForm.module.css';
 
 export default function InvoiceForm() {
     const router = useRouter();
-    const { profile, signOut } = useAuth();
 
     // SWR Data Fetching
     const { data: companies = [] } = useSWR('companies', getCompanies);
@@ -34,7 +32,6 @@ export default function InvoiceForm() {
     const [amountPaid, setAmountPaid] = useState<number | string>(0);
     const [invoiceType, setInvoiceType] = useState<InvoiceType>(InvoiceType.PROFORMA);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
-    const [generatedNumber, setGeneratedNumber] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Initial sequence from Cloud
@@ -82,7 +79,6 @@ export default function InvoiceForm() {
         setAmountPaid('');
         setInvoiceType(InvoiceType.PROFORMA);
         setInvoiceNumber('');
-        setGeneratedNumber(''); // Reset pour permettre nouvelle réservation
         toast.success('Formulaire réinitialisé avec succès');
     };
 
@@ -180,8 +176,6 @@ export default function InvoiceForm() {
                 }
 
 
-                // Clear state pour la prochaine facture
-                setGeneratedNumber('');
                 toast.success("Facture enregistrée", { id: toastId });
                 router.push('/preview');
             } catch (error) {

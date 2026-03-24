@@ -10,6 +10,13 @@ export function getWeekData(date: Date): { week: number, year: number } {
     return { week, year: target.getFullYear() };
 }
 
+type WeeklyBucket = { label: string; ca: number };
+type InvoiceAggregateRow = {
+    date?: string | null;
+    created_at?: string | null;
+    total_amount?: number | string | null;
+};
+
 /**
  * Initialise une Map avec les labels des 5 dernières semaines.
  */
@@ -28,7 +35,7 @@ export function initializeWeeklyMap(now: Date = new Date()): Map<string, { label
 /**
  * Agrège les montants des factures par semaine.
  */
-export function aggregateInvoicesByWeek(invoices: any[], weeklyMap: Map<string, { label: string, ca: number }>) {
+export function aggregateInvoicesByWeek(invoices: InvoiceAggregateRow[], weeklyMap: Map<string, WeeklyBucket>) {
     invoices?.forEach(inv => {
         const dateStr = inv.date || inv.created_at;
         if (!dateStr) return;

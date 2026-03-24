@@ -3,14 +3,16 @@
 import React from 'react';
 import { SWRConfig } from 'swr';
 
+type SWRKey = string | readonly [string, ...unknown[]] | (() => Promise<unknown>);
+
 export default function SWRConfigContext({ children }: { children: React.ReactNode }) {
     return (
         <SWRConfig
             value={{
-                fetcher: async (key: string | [string, ...any[]]) => {
+                fetcher: async (key: SWRKey) => {
                     // Si la clé est une fonction (cas direct d'importation de service)
                     if (typeof key === 'function') {
-                        return await (key as any)();
+                        return await key();
                     }
 
                     // On peut étendre ici pour gérer des URLs API si besoin
@@ -23,12 +25,12 @@ export default function SWRConfigContext({ children }: { children: React.ReactNo
                     // On force un rafraîchissement global pour que AuthProvider redirige
                     if (error?.status === 401 || error?.status === 403 || error?.code === 'refresh_token_not_found') {
                         console.error('Erreur de session critique détectée via SWR:', error);
-                        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-                            window.location.href = '/login';
+                        if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new Event('app:session-invalid'));
                         }
                     }
                 },
-                onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+                onErrorRetry: (error, _key, _config, revalidate, { retryCount }) => {
                     // Ne pas réessayer si c'est une erreur d'authentification
                     if (error?.status === 401 || error?.status === 403) return;
 

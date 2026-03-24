@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React from 'react';
 import { InvoiceData } from '@/lib/types';
 import { numberToWords } from '@/lib/numberToWords';
@@ -47,7 +48,7 @@ export default function FactureModerneBlue({ data, showDelivered = true }: Factu
                     <div className={styles.metaValue}>#{data.numeroFacture}</div>
                 </div>
                 <div className={styles.metaItem}>
-                    <div className={styles.metaLabel}>Date d'émission</div>
+                    <div className={styles.metaLabel}>Date d&apos;émission</div>
                     <div className={styles.metaValue}>{data.dateFacture}</div>
                 </div>
                 <div className={styles.metaItem}>

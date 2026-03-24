@@ -2,17 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/components/AuthProvider';
 import { adminUpdateProfile, uploadAvatarAction } from '@/lib/adminActions';
-import { authService } from '@/lib/authService';
 import PasswordStrength from '@/components/PasswordStrength';
 import imageCompression from 'browser-image-compression';
 import styles from './page.module.css';
 
 export default function ProfilePage() {
-    const { profile, loading: authLoading } = useAuth();
+    const { profile, loading: authLoading, refreshProfile } = useAuth();
     const router = useRouter();
 
     const [formData, setFormData] = useState({
@@ -103,11 +101,13 @@ export default function ProfilePage() {
                 return;
             }
 
+            await refreshProfile();
             showStatus('Profil mis à jour avec succès !');
             setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
             setSelectedFile(null); // Reset selection
-        } catch (err: any) {
-            showStatus(err.message || 'Erreur lors de la mise à jour.', true);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour.';
+            showStatus(message, true);
         } finally {
             setLoading(false);
         }
