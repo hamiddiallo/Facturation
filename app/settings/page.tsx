@@ -89,7 +89,7 @@ export default function SettingsPage() {
                 setMainTab(tab);
             }
         } else if (!authLoading && !profile) {
-            router.push('/login');
+            router.push('/login?force_login=1');
         }
     }, [authLoading, profile, router]);
 

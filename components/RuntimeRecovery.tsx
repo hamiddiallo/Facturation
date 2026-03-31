@@ -41,13 +41,15 @@ export default function RuntimeRecovery() {
             console.error('Runtime recovery triggered:', reason);
 
             // Si un rechargement a déjà été tenté récemment, on purge les caches
-            // avant de rediriger proprement vers l'entrée principale.
+            // avant de rediriger proprement vers la route courante.
             if (lastAttempt > 0 && now - lastAttempt < RECOVERY_WINDOW_MS) {
                 sessionStorage.removeItem(RECOVERY_FLAG);
                 try {
                     await clearBrowserCaches();
                 } finally {
-                    window.location.replace('/?recovery=1');
+                    const target = new URL(window.location.href);
+                    target.searchParams.set('recovery', '1');
+                    window.location.replace(target.toString());
                 }
                 return;
             }

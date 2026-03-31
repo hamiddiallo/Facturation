@@ -104,6 +104,9 @@ export async function adminCreateUser(email: string, pass: string, fullName: str
             email: cleanEmail,
             password: cleanPass,
             email_confirm: true,
+            app_metadata: {
+                role: cleanRole
+            },
             user_metadata: {
                 full_name: cleanName,
                 role: cleanRole
@@ -211,10 +214,45 @@ export async function adminUpdateProfile(userId: string, data: UpdateProfileInpu
     if (cleanData.avatar_url !== undefined) updates.avatar_url = cleanData.avatar_url;
 
     try {
-        if (cleanData.email || cleanData.password) {
-            const authUpdates: { email?: string; password?: string } = {};
+        if (
+            cleanData.email ||
+            cleanData.password ||
+            cleanData.role !== undefined ||
+            cleanData.fullName !== undefined
+        ) {
+            const authUpdates: {
+                email?: string;
+                password?: string;
+                user_metadata?: Record<string, unknown>;
+                app_metadata?: Record<string, unknown>;
+            } = {};
             if (cleanData.email) authUpdates.email = cleanData.email;
             if (cleanData.password) authUpdates.password = cleanData.password;
+            if (cleanData.role !== undefined || cleanData.fullName !== undefined) {
+                const { data: authUserData, error: getAuthUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
+                if (getAuthUserError) {
+                    console.error('Erreur lecture auth.users pour sync metadata:', getAuthUserError.message);
+                }
+
+                const nextUserMetadata: Record<string, unknown> = {
+                    ...(authUserData?.user?.user_metadata || {})
+                };
+                const nextAppMetadata: Record<string, unknown> = {
+                    ...(authUserData?.user?.app_metadata || {})
+                };
+
+                if (cleanData.fullName !== undefined) {
+                    nextUserMetadata.full_name = cleanData.fullName;
+                }
+
+                if (cleanData.role !== undefined) {
+                    nextUserMetadata.role = cleanData.role;
+                    nextAppMetadata.role = cleanData.role;
+                }
+
+                authUpdates.user_metadata = nextUserMetadata;
+                authUpdates.app_metadata = nextAppMetadata;
+            }
 
             const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, authUpdates);
             if (authError) {

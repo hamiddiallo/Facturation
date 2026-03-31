@@ -29,8 +29,8 @@ export const getServerSession = cache(async () => {
         .eq('id', user.id)
         .single();
 
-    if (profileError || !profile) {
-        console.error('Error fetching server profile:', profileError);
+    if (profileError || !profile || profile.status !== 'active') {
+        console.error('Error fetching server profile or inactive account:', profileError, profile?.status);
         return null;
     }
 

@@ -26,7 +26,7 @@ export default function ProfilePage() {
 
     useEffect(() => {
         if (!authLoading && !profile) {
-            router.push('/login');
+            router.push('/login?force_login=1');
         } else if (profile) {
             setFormData(prev => ({
                 ...prev,

@@ -1,6 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
 
+function redirectOnRequestOrigin(request: NextRequest, pathname: string, search: string = ''): NextResponse {
+    const target = request.nextUrl.clone()
+    target.pathname = pathname
+    target.search = search
+    target.hash = ''
+    return NextResponse.redirect(target)
+}
+
 export async function updateSession(request: NextRequest) {
     let response = NextResponse.next({
         request: {
@@ -38,6 +46,7 @@ export async function updateSession(request: NextRequest) {
     const isPublicRoute =
         url.pathname === '/login' ||
         url.pathname === '/auth/callback' ||
+        url.pathname === '/auth/logout' ||
         url.pathname === '/preview' ||
         url.pathname === '/manifest.json' ||
         url.pathname === '/robots.txt' ||
@@ -58,15 +67,33 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // --- LOGIQUE DE REDIRECTION ---
-    if (!user && !isPublicRoute) {
-        const loginUrl = new URL('/login', request.url)
-        return NextResponse.redirect(loginUrl)
+    if (user && url.pathname !== '/auth/logout') {
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('status, role')
+            .eq('id', user.id)
+            .maybeSingle()
+
+        if (profileError || !profile || profile.status !== 'active') {
+            console.warn(
+                `[ProxyAuth] Inactive or missing profile detected. path=${url.pathname}, user=${user.id}, status=${profile?.status ?? 'unknown'}`
+            )
+            return redirectOnRequestOrigin(request, '/auth/logout', '?reason=inactive_profile')
+        }
     }
 
-    if (user && url.pathname === '/login') {
-        const homeUrl = new URL('/', request.url)
-        return NextResponse.redirect(homeUrl)
+    // --- LOGIQUE DE REDIRECTION ---
+    if (!user && !isPublicRoute) {
+        return redirectOnRequestOrigin(request, '/login')
+    }
+
+    const allowLoginScreen =
+        url.searchParams.has('logged_out') ||
+        url.searchParams.has('inactive') ||
+        url.searchParams.has('force_login');
+
+    if (user && url.pathname === '/login' && !allowLoginScreen) {
+        return redirectOnRequestOrigin(request, '/')
     }
 
     return response

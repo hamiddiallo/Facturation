@@ -22,6 +22,9 @@ export default function LoginPage() {
         if (result.success) {
             router.push('/');
         } else {
+            if (result.error === 'Compte inactif ou inaccessible') {
+                router.replace('/login?inactive=1');
+            }
             setMessage({ type: 'error', text: result.error || 'Erreur de connexion' });
             setLoading(false);
         }

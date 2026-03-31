@@ -31,7 +31,19 @@ export const authService = {
                 .single();
 
             if (profileError || !profile || profile.status !== 'active') {
-                await supabase.auth.signOut();
+                await supabase.auth.signOut({ scope: 'local' });
+                if (typeof window !== 'undefined') {
+                    try {
+                        await fetch('/auth/logout?reason=inactive', {
+                            method: 'POST',
+                            credentials: 'include',
+                            cache: 'no-store',
+                            keepalive: true
+                        });
+                    } catch {
+                        // Ignore: le fallback client gardera l'utilisateur sur l'écran de login.
+                    }
+                }
                 return { success: false, error: 'Compte inactif ou inaccessible' };
             }
 
@@ -60,19 +72,38 @@ export const authService = {
     },
 
     // Récupérer l'utilisateur actuel
+    // ⚠️ Utilise getUser() (validation réseau) et NON getSession() (cache local)
+    // getSession() ne détecte PAS les tokens révoqués/compromis car il lit uniquement
+    // le localStorage/mémoire sans aucun appel serveur.
     async getCurrentUser(): Promise<UserProfile | null> {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return null;
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) return null;
 
-            // Fetch du profil via le client pour éviter les erreurs de synchro cookies au rafraîchissement
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('id', session.user.id)
+                .eq('id', user.id)
                 .single();
 
             if (profileError || !profile || profile.status !== 'active') {
+                return null;
+            }
+
+            // --- VÉRIFICATION DE COMPROMISSION (ROLE MISMATCH) ---
+            // Si le token (JWT) prétend avoir un rôle X mais que la DB a un rôle Y,
+            // la session est compromise (ex: admin rétrogradé en user_simple, ou JWT falsifié).
+            // IMPORTANT: on ne fait confiance qu'à app_metadata (claim serveur).
+            // user_metadata est modifiable côté utilisateur et peut être désynchronisé.
+            const tokenRole = typeof user.app_metadata?.role === 'string'
+                ? user.app_metadata.role
+                : null;
+
+            // On invalide seulement les cas de sur-privilège (token admin mais DB non-admin).
+            // Cela protège contre l'élévation de privilège tout en tolérant un claim "user"
+            // ancien lorsque le profil DB est admin.
+            if (tokenRole === 'admin' && profile.role !== 'admin') {
+                console.warn(`[Security] Privilege mismatch detected! Token: ${tokenRole}, DB: ${profile.role}`);
                 return null;
             }
 
@@ -89,14 +120,10 @@ export const authService = {
         return session;
     },
 
-    // Vérification rapide de validité (sans appel réseau si possible)
+    // Vérification de validité via appel réseau (valide le JWT auprès de Supabase)
+    // getUser() est plus fiable que getSession() pour détecter les tokens révoqués
     async isSessionValid(): Promise<boolean> {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return false;
-
-        // Vérifier si le token expire dans moins de 10 secondes
-        const expiresAt = session.expires_at || 0;
-        const now = Math.floor(Date.now() / 1000);
-        return (expiresAt - now) > 10;
+        const { data: { user }, error } = await supabase.auth.getUser();
+        return !error && !!user;
     }
 };

@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url);
+    const redirectTo = new URL(request.url);
+    const { searchParams } = redirectTo;
     const code = searchParams.get('code');
 
     if (code) {
@@ -13,5 +14,8 @@ export async function GET(request: Request) {
         await supabase.auth.exchangeCodeForSession(code);
     }
 
-    return NextResponse.redirect(new URL('/', origin));
+    redirectTo.pathname = '/';
+    redirectTo.search = '';
+    redirectTo.hash = '';
+    return NextResponse.redirect(redirectTo, 303);
 }
