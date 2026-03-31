@@ -12,6 +12,8 @@ interface FactureModerneBlueProps {
 }
 
 export default function FactureModerneBlue({ data, showDelivered = true }: FactureModerneBlueProps) {
+    const company = data.selectedCompany;
+    const companyDisplayNameUpper = (company.displayName || '').toUpperCase();
     const markupPercentage = data.selectedCompany.markupPercentage || 0;
     const isBonLivraison = data.type === InvoiceType.BON_LIVRAISON;
 
@@ -29,13 +31,13 @@ export default function FactureModerneBlue({ data, showDelivered = true }: Factu
             {/* Header */}
             <div className={styles.header}>
                 <div className={styles.companyInfo}>
-                    <h1 className={styles.companyName}>{data.selectedCompany.displayName}</h1>
+                    <h1 className={styles.companyName}>{companyDisplayNameUpper}</h1>
                     <div className={styles.companyDetails}>
-                        {data.selectedCompany.address && (
-                            <div>📍 {data.selectedCompany.address}</div>
+                        {company.address && (
+                            <div>📍 {company.address}</div>
                         )}
-                        {data.selectedCompany.phone && (
-                            <div>📞 {data.selectedCompany.phone}</div>
+                        {company.phone && (
+                            <div>📞 {company.phone}</div>
                         )}
                     </div>
                 </div>

@@ -12,6 +12,7 @@ interface FactureDefinitiveProps {
 
 export default function FactureDefinitive({ data, showDelivered = true }: FactureDefinitiveProps) {
     const company = data.selectedCompany;
+    const companyDisplayNameUpper = (company.displayName || '').toUpperCase();
     const isModern = company.templateId === 'template_modern';
     const isClassic = company.templateId === 'template_classic';
 
@@ -30,7 +31,7 @@ export default function FactureDefinitive({ data, showDelivered = true }: Factur
                     {/* Header */}
                     <div className={styles.fadyHeader}>
                         <div className={styles.headerCenter}>
-                            <h1 className={styles.fadyTitle}>{company.displayName}</h1>
+                            <h1 className={styles.fadyTitle}>{companyDisplayNameUpper}</h1>
                             <p className={styles.fadySubtitle}>Import - Export - Alimentation Générale</p>
                             <p className={styles.fadyPhone}>Tél : {company.phone}</p>
                         </div>
@@ -134,9 +135,9 @@ export default function FactureDefinitive({ data, showDelivered = true }: Factur
                     <div className={styles.middle}>
                         <section className={styles.entreprise}>
                             {isClassic ? (
-                                <h2 className={styles.companyName}>{company.displayName}</h2>
+                                <h2 className={styles.companyName}>{companyDisplayNameUpper}</h2>
                             ) : (
-                                <h4 className={styles.companyNameSimple}>{company.displayName}</h4>
+                                <h4 className={styles.companyNameSimple}>{companyDisplayNameUpper}</h4>
                             )}
                             <p>{company.businessType}</p>
                             <p>{company.address}</p>
