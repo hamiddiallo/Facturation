@@ -63,9 +63,3 @@ CREATE INDEX IF NOT EXISTS idx_invoices_created_at ON public.invoices(created_at
 -- Index sur les colonnes de jointure/recherche fréquentes
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON public.invoice_items(invoice_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
-
--- Rapport de succès
-DO $$
-BEGIN
-  RAISE NOTICE '🚀 Optimisations SQL terminées avec succès';
-END $$;

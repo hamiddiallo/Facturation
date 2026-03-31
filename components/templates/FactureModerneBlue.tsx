@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import React from 'react';
-import { InvoiceData } from '@/lib/types';
+import { InvoiceData, InvoiceType } from '@/lib/types';
 import { numberToWords } from '@/lib/numberToWords';
 import { calculateAdjustedPrice } from '@/lib/priceCalculations';
 import { getInvoiceTitle } from '@/lib/textUtils';
@@ -13,6 +13,7 @@ interface FactureModerneBlueProps {
 
 export default function FactureModerneBlue({ data, showDelivered = true }: FactureModerneBlueProps) {
     const markupPercentage = data.selectedCompany.markupPercentage || 0;
+    const isBonLivraison = data.type === InvoiceType.BON_LIVRAISON;
 
     // Calculate total with markup
     const totalWithMarkup = data.articles.reduce((sum, article) => {
@@ -51,16 +52,20 @@ export default function FactureModerneBlue({ data, showDelivered = true }: Factu
                     <div className={styles.metaLabel}>Date d&apos;émission</div>
                     <div className={styles.metaValue}>{data.dateFacture}</div>
                 </div>
-                <div className={styles.metaItem}>
-                    <div className={styles.metaLabel}>Devise</div>
-                    <div className={styles.metaValue}>GNF</div>
-                </div>
+                {!isBonLivraison && (
+                    <div className={styles.metaItem}>
+                        <div className={styles.metaLabel}>Devise</div>
+                        <div className={styles.metaValue}>GNF</div>
+                    </div>
+                )}
             </div>
 
             {/* Client Box */}
             <div className={styles.clientBox}>
                 <div className={styles.clientInfoRow}>
-                    <span className={styles.clientLabel}>Facture à :</span>
+                    <span className={styles.clientLabel}>
+                        {isBonLivraison ? 'Livrer à :' : 'Facture à :'}
+                    </span>
                     <span className={styles.clientName}>{data.client.nom}</span>
                     {data.client.adresse && (
                         <span className={styles.clientAddressSeparator}> - </span>
@@ -80,8 +85,8 @@ export default function FactureModerneBlue({ data, showDelivered = true }: Factu
                         <th>Désignation</th>
                         <th>Quantité</th>
                         <th>Unité</th>
-                        <th>Prix Unitaire</th>
-                        <th>Total</th>
+                        {!isBonLivraison && <th>Prix Unitaire</th>}
+                        {!isBonLivraison && <th>Total</th>}
                     </tr>
                 </thead>
                 <tbody>
@@ -104,8 +109,8 @@ export default function FactureModerneBlue({ data, showDelivered = true }: Factu
                                 <td>{article.designation}</td>
                                 <td>{article.quantity}</td>
                                 <td>{article.unit || '-'}</td>
-                                <td>{adjustedPrice.toLocaleString('fr-FR')}</td>
-                                <td>{total.toLocaleString('fr-FR')}</td>
+                                {!isBonLivraison && <td>{adjustedPrice.toLocaleString('fr-FR')}</td>}
+                                {!isBonLivraison && <td>{total.toLocaleString('fr-FR')}</td>}
                             </tr>
                         );
                     })}
@@ -113,17 +118,21 @@ export default function FactureModerneBlue({ data, showDelivered = true }: Factu
             </table>
 
             {/* Total */}
-            <div className={styles.totalSection}>
-                <div className={styles.totalBox}>
-                    <span className={styles.totalLabel}>Total Net</span>
-                    <span className={styles.totalAmount}>{totalWithMarkup.toLocaleString('fr-FR')} FG</span>
+            {!isBonLivraison && (
+                <div className={styles.totalSection}>
+                    <div className={styles.totalBox}>
+                        <span className={styles.totalLabel}>Total Net</span>
+                        <span className={styles.totalAmount}>{totalWithMarkup.toLocaleString('fr-FR')} FG</span>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Amount in Words */}
-            <div className={styles.amountInWords}>
-                Arrêté la présente facture à la somme de : <strong>{amountInWords} GNF</strong>
-            </div>
+            {!isBonLivraison && (
+                <div className={styles.amountInWords}>
+                    Arrêté la présente facture à la somme de : <strong>{amountInWords} GNF</strong>
+                </div>
+            )}
 
             {/* Signatures */}
             <div className={styles.signatures}>
