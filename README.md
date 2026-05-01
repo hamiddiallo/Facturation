@@ -91,36 +91,6 @@ Facture/
 - Sélecteur de type horizontal scrollable
 - Interface tactile optimisée
 
-## 🔧 Configuration
-
-### Ajouter une Entreprise
-
-Modifier `lib/companies.ts` :
-
-```typescript
-{
-  id: 'mon-entreprise',
-  name: 'MON ENTREPRISE',
-  displayName: 'MON ENTREPRISE',
-  businessType: 'Commerce Generale',
-  address: 'Adresse complète',
-  phone: '+224 XXX XXX XXX',
-  email: 'contact@exemple.com',
-  hasStyledLogo: false
-}
-```
-
-## 📦 Déploiement sur Vercel
-
-```bash
-# Installer Vercel CLI
-npm i -g vercel
-
-# Déployer
-vercel
-```
-
-Ou via l'interface : [vercel.com/new](https://vercel.com/new)
 
 ## 📝 Licence
 
@@ -128,9 +98,9 @@ Projet privé - Tous droits réservés
 
 ## 👨‍💻 Auteur
 
-Développé pour la gestion de factures en Guinée
+Développé par Hamid Diallo pour la gestion de factures
 
 ---
 
-**Version** : 1.0.0  
-**Dernière mise à jour** :janvier 2026
+**Version** : 3.0.1  
+**Dernière mise à jour** :Mars 2026

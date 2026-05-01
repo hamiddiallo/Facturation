@@ -24,6 +24,7 @@ import styles from './page.module.css';
 
 type MainTab = 'companies' | 'users' | 'backup';
 type ListedUser = ProfileRow;
+const isProduction = process.env.NODE_ENV === 'production';
 
 type EditableUser = {
     id: string;
@@ -85,6 +86,11 @@ export default function SettingsPage() {
             // Gestion de l'onglet par défaut via URL
             const params = new URLSearchParams(window.location.search);
             const tab = params.get('tab') as MainTab;
+            if (tab === 'backup' && isProduction) {
+                setMainTab('companies');
+                return;
+            }
+
             if (tab && ['companies', 'users', 'backup'].includes(tab)) {
                 setMainTab(tab);
             }
@@ -391,7 +397,7 @@ export default function SettingsPage() {
                                 👥 Utilisateurs
                             </button>
                         )}
-                        {profile?.role === 'admin' && (
+                        {profile?.role === 'admin' && !isProduction && (
                             <button
                                 className={`${styles.mainTabButton} ${mainTab === 'backup' ? styles.mainTabActive : ''}`}
                                 onClick={() => setMainTab('backup')}
@@ -470,7 +476,7 @@ export default function SettingsPage() {
                         )}
 
                         {/* ONGLET BACKUPS */}
-                        {mainTab === 'backup' && profile?.role === 'admin' && (
+                        {mainTab === 'backup' && profile?.role === 'admin' && !isProduction && (
                             <div className={styles.backupSection}>
                                 <BackupManager />
                             </div>

@@ -60,6 +60,37 @@ BEGIN
         'authenticated',
         'authenticated'
       );
+
+      -- Supabase Auth attend aussi une identité email liée à chaque auth.users.
+      -- Sans cette ligne, les appels Auth admin/login peuvent échouer en 500
+      -- même si l'utilisateur existe dans auth.users.
+      INSERT INTO auth.identities (
+        provider_id,
+        user_id,
+        identity_data,
+        provider,
+        last_sign_in_at,
+        created_at,
+        updated_at
+      ) VALUES (
+        profile_record.id::text,
+        profile_record.id,
+        jsonb_build_object(
+          'sub', profile_record.id::text,
+          'email', profile_record.email,
+          'email_verified', true,
+          'phone_verified', false
+        ),
+        'email',
+        NOW(),
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT (provider_id, provider) DO UPDATE
+      SET
+        user_id = EXCLUDED.user_id,
+        identity_data = EXCLUDED.identity_data,
+        updated_at = NOW();
       
       RAISE NOTICE '✅ Migré: % (ID: %)', profile_record.email, profile_record.id;
       
@@ -79,6 +110,7 @@ BEGIN
   INSERT INTO public.profiles (
     id, 
     email, 
+    password_hash,
     full_name, 
     role, 
     status
@@ -86,6 +118,7 @@ BEGIN
   VALUES (
     NEW.id,
     NEW.email,
+    'AUTH_MANAGED',
     COALESCE(NEW.raw_user_meta_data->>'full_name', 'Utilisateur'),
     COALESCE(NEW.raw_user_meta_data->>'role', 'user'),
     'active'
